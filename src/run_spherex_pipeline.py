@@ -66,36 +66,43 @@ ra, dec = 128.776, 19.883
 object_name = "L5 SDSS J083506.16+195304.4"
 fits_dir = "spherex_qr2_downloads"
 
-ra, dec = 329.520, -15.837
+
 object_name = "L4 2MASS J21580457-1550098"
-fits_dir = "standards/data"
+ra, dec = 329.519261, -15.836336
+pmra, pmdec = 45.951, -63.481
+ref_epoch = 2016.0
 
-ra, dec = 226.719, 13.351
 object_name = "L3 2MASSW J1506544+132106"
-fits_dir = "standards/data"
+ra, dec = 226.721482, 13.3516252
+pmra, pmdec = -1071.073, -11.8
+ref_epoch = 2016.0
 
-ra, dec = 196.416, -25.686
 object_name = "L2 Kelu-1"
-fits_dir = "standards/data"
+ra, dec = 196.415845, -25.6850415
+pmra, pmdec = -305.371, -27.326
+ref_epoch = 2016.0
 
-ra, dec = 219.859, 19.490
 object_name = "L1 2MASSW J1439284+192915"
-fits_dir = "standards/data"
+ra, dec = 219.8614407, 19.4894642
+pmra, pmdec = -1241.001, 385.125
+ref_epoch = 2016.0
 
-ra, dec = 56.430, 25.672
+"""
 object_name = "L0 2MASP J0345432+254023"
-fits_dir = "standards/data"
+ra, dec = 56.4293698, 25.6729385
+pmra, pmdec = -95.363, -41.319
+ref_epoch = 2016.0
 
-ra, dec = 217.178, 33.172
 object_name = "M9 LHS 2924"
-fits_dir = "standards/data"
+ra, dec = 217.1782723, 33.1744121
+pmra, pmdec = -346.961, -710.986
+ref_epoch = 2016.0
 
 object_name = "M8 VB 10"
 ra, dec = 289.2373737, 5.1443733
 pmra, pmdec = -598.761, -1366.063
 ref_epoch = 2016.0
 
-"""
 object_name = "M7 VB 8"
 ra, dec = 253.8932463, -8.398523
 pmra, pmdec = -813.038, -870.609
