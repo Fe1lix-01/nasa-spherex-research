@@ -50,28 +50,32 @@ ra, dec = 43.777, -47.019
 object_name = "L9 DENIS-P J0255-4700"
 fits_dir = "standards/data"
 
-ra, dec = 248.125, 19.077
 object_name = "L8 2MASSW J1632291+190441"
-fits_dir = "standards/data"
+ra, dec = 248.123048, 19.0776561
+pmra, pmdec = 233.784, -58.5  # NSC DR2
+ref_epoch = Time("2017-08-07 06:15:33").decimalyear
 
-ra, dec = 327.076, 40.069
 object_name = "L7 2MASSW J2148162+400359"
-fits_dir = "standards/data_alt"
+ra, dec = 327.0723955, 40.0685178
+pmra, pmdec = 772.176, 458.243
+ref_epoch = 2016.0
 
-ra, dec = 152.560, -4.115
 object_name = "L6 2MASSI J1010148-040649"
-fits_dir = "standards/data"
+ra, dec = 152.561696, -4.11387
+pmra, pmdec = -324.2, -17.8  # 2020AJ....159..257B
+ref_epoch = 2000.0
 
-ra, dec = 128.776, 19.883
 object_name = "L5 SDSS J083506.16+195304.4"
-fits_dir = "spherex_qr2_downloads"
-
+ra, dec = 128.775097, 19.884142
+pmra, pmdec = -141.852, -142.771  # NSC DR2
+ref_epoch = Time("2016-10-24 03:31:24").decimalyear
 
 object_name = "L4 2MASS J21580457-1550098"
 ra, dec = 329.519261, -15.836336
 pmra, pmdec = 45.951, -63.481
 ref_epoch = 2016.0
 
+"""
 object_name = "L3 2MASSW J1506544+132106"
 ra, dec = 226.721482, 13.3516252
 pmra, pmdec = -1071.073, -11.8
@@ -87,7 +91,6 @@ ra, dec = 219.8614407, 19.4894642
 pmra, pmdec = -1241.001, 385.125
 ref_epoch = 2016.0
 
-"""
 object_name = "L0 2MASP J0345432+254023"
 ra, dec = 56.4293698, 25.6729385
 pmra, pmdec = -95.363, -41.319
