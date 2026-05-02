@@ -90,16 +90,16 @@ ra, dec = 217.178, 33.172
 object_name = "M9 LHS 2924"
 fits_dir = "standards/data"
 
-ra, dec = 289.236, 5.140
 object_name = "M8 VB 10"
-fits_dir = "standards/data"
+ra, dec = 289.2373737, 5.1443733
+pmra, pmdec = -598.761, -1366.063
+ref_epoch = 2016.0
 
+"""
 object_name = "M7 VB 8"
 ra, dec = 253.8932463, -8.398523
 pmra, pmdec = -813.038, -870.609
 ref_epoch = 2016.0
-
-"""
 """
 
 # pmra, pmdec = 0, 0
@@ -161,7 +161,7 @@ cfg = PipelineConfig(
     # alternatives: "edges", "nearest", "auto"
 
     spectral_channels_cache_dir="../resources/spherex_calibration_files/spherex_spectral_channels_cache",
-    redownload_spectral_channels=True,
+    redownload_spectral_channels=False,
     spectral_channels_collection="cal-sch-v1-2026-106",
 
     # ============================================================
@@ -182,9 +182,8 @@ cfg = PipelineConfig(
     # ============================================================
     # 6. SAPM (CALIBRATION) HANDLING
     # ============================================================
-    cache_sapm_files=True,  # cache detector calibration locally
     sapm_cache_dir="../resources/spherex_calibration_files/spherex_sapm_cache",
-    redownload_sapm_files=True,
+    redownload_sapm_files=False,
     sapm_collection="cal-sapm-v2-2025-164",
 
     # ============================================================
