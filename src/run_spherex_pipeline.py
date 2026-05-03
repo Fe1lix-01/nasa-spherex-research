@@ -6,7 +6,6 @@ from spexpi.spherex_pipeline import PipelineConfig, run_spherex_pipeline
 # Spectral standards
 # ------------------------------------------------------
 
-
 object_name = "T9 WISEP J174124.25+255319.5"
 ra, dec = 265.352586, 25.892878  # 2MASS
 pmra, pmdec = -495, -1472  # 2013ApJ...762..119M

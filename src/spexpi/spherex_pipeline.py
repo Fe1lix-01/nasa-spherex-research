@@ -1,16 +1,3 @@
-"""
-SPHEREx aperture-photometry spectrum pipeline.
-
-Standalone version based on the SPHEREx Source Discovery Tool demo notebook:
-- queries SPHEREx spectral-image cutouts from IRSA TAP
-- uses SPHEREx solid-angle pixel maps to convert IMAGE/VARIANCE to flux units
-- performs aperture photometry with local annulus background subtraction
-- writes a spectrum FITS file and an optional diagnostic measurement table
-
-Dependencies:
-    astropy, numpy, matplotlib, pyvo, photutils, scipy, fsspec/s3fs
-"""
-
 from __future__ import annotations
 
 import concurrent.futures
@@ -2465,6 +2452,133 @@ def process_spectrum_table(spec: Table, cfg: PipelineConfig) -> Table:
     return Table([wl[order], flux[order], err[order], det[order]], names=("WAVELENGTH", "FLUX", "ERR", "DETECTOR"))
 
 
+def compute_epoch_adjusted_coordinate_stats(cutouts: list[dict]) -> dict:
+    """Compute mean and scatter of the per-cutout epoch-adjusted coordinates.
+
+    The pipeline stores the proper-motion-propagated sky position used for each
+    exposure in ``input_ra_deg`` and ``input_dec_deg``.  A direct arithmetic
+    mean of RA can fail near the 0/360-degree boundary, so the mean position is
+    computed from unit vectors on the sphere.  The reported RA and Dec scatters
+    are small-angle standard deviations in arcseconds around the mean position,
+    and ``pos_std_arcsec`` is the standard deviation of the radial separation
+    from the mean position.
+    """
+    ras = np.asarray([row.get("input_ra_deg", np.nan) for row in cutouts], dtype=float)
+    decs = np.asarray([row.get("input_dec_deg", np.nan) for row in cutouts], dtype=float)
+    valid = np.isfinite(ras) & np.isfinite(decs)
+
+    n_valid = int(np.count_nonzero(valid))
+    if n_valid == 0:
+        return {
+            "mean_ra_deg": np.nan,
+            "mean_dec_deg": np.nan,
+            "ra_std_arcsec": np.nan,
+            "dec_std_arcsec": np.nan,
+            "pos_std_arcsec": np.nan,
+            "pos_max_sep_arcsec": np.nan,
+            "n_positions": 0,
+        }
+
+    ra_rad = np.deg2rad(ras[valid])
+    dec_rad = np.deg2rad(decs[valid])
+
+    # Spherical mean, robust against RA wrap-around at 0/360 degrees.
+    x = np.cos(dec_rad) * np.cos(ra_rad)
+    y = np.cos(dec_rad) * np.sin(ra_rad)
+    z = np.sin(dec_rad)
+    mean_vec = np.array([np.nanmean(x), np.nanmean(y), np.nanmean(z)], dtype=float)
+    norm = np.linalg.norm(mean_vec)
+
+    if not np.isfinite(norm) or norm <= 0:
+        return {
+            "mean_ra_deg": np.nan,
+            "mean_dec_deg": np.nan,
+            "ra_std_arcsec": np.nan,
+            "dec_std_arcsec": np.nan,
+            "pos_std_arcsec": np.nan,
+            "pos_max_sep_arcsec": np.nan,
+            "n_positions": n_valid,
+        }
+
+    mean_vec /= norm
+    mean_ra = float(np.rad2deg(np.arctan2(mean_vec[1], mean_vec[0])) % 360.0)
+    mean_dec = float(np.rad2deg(np.arcsin(np.clip(mean_vec[2], -1.0, 1.0))))
+
+    # Small-angle component scatter around the mean position.
+    dra_deg = ((ras[valid] - mean_ra + 180.0) % 360.0) - 180.0
+    dra_arcsec = dra_deg * np.cos(np.deg2rad(mean_dec)) * 3600.0
+    ddec_arcsec = (decs[valid] - mean_dec) * 3600.0
+
+    ddof = 1 if n_valid > 1 else 0
+    ra_std = float(np.nanstd(dra_arcsec, ddof=ddof)) if n_valid > 0 else np.nan
+    dec_std = float(np.nanstd(ddec_arcsec, ddof=ddof)) if n_valid > 0 else np.nan
+
+    mean_coord = SkyCoord(mean_ra * u.deg, mean_dec * u.deg, frame="icrs")
+    coords = SkyCoord(ras[valid] * u.deg, decs[valid] * u.deg, frame="icrs")
+    sep_arcsec = coords.separation(mean_coord).arcsec
+    pos_std = float(np.nanstd(sep_arcsec, ddof=ddof)) if n_valid > 0 else np.nan
+    pos_max = float(np.nanmax(sep_arcsec)) if n_valid > 0 else np.nan
+
+    return {
+        "mean_ra_deg": mean_ra,
+        "mean_dec_deg": mean_dec,
+        "ra_std_arcsec": ra_std,
+        "dec_std_arcsec": dec_std,
+        "pos_std_arcsec": pos_std,
+        "pos_max_sep_arcsec": pos_max,
+        "n_positions": n_valid,
+    }
+
+
+def print_epoch_adjusted_coordinate_stats(stats: dict) -> None:
+    """Print a compact summary of the epoch-adjusted coordinate statistics."""
+    mean_ra = stats.get("mean_ra_deg", np.nan)
+    mean_dec = stats.get("mean_dec_deg", np.nan)
+    n_pos = int(stats.get("n_positions", 0) or 0)
+
+    if not (np.isfinite(mean_ra) and np.isfinite(mean_dec) and n_pos > 0):
+        print("Mean epoch-adjusted coordinates: unavailable")
+        return
+
+    print(
+        "Mean epoch-adjusted coordinates "
+        f"({n_pos} cutouts): RA={mean_ra:.9f} deg, Dec={mean_dec:.9f} deg"
+    )
+    print(
+        "Epoch-adjusted coordinate scatter: "
+        f"RA={stats.get('ra_std_arcsec', np.nan):.4f} arcsec, "
+        f"Dec={stats.get('dec_std_arcsec', np.nan):.4f} arcsec, "
+        f"radial std={stats.get('pos_std_arcsec', np.nan):.4f} arcsec, "
+        f"max separation={stats.get('pos_max_sep_arcsec', np.nan):.4f} arcsec"
+    )
+
+
+def add_epoch_adjusted_coordinate_header(header, stats: dict) -> None:
+    """Add mean epoch-adjusted position and scatter metadata to a FITS header."""
+    n_pos = int(stats.get("n_positions", 0) or 0)
+    header["EPNPOS"] = (n_pos, "Number of epoch-adjusted positions")
+
+    mean_ra = stats.get("mean_ra_deg", np.nan)
+    mean_dec = stats.get("mean_dec_deg", np.nan)
+    if np.isfinite(mean_ra):
+        header["EPMRA"] = (float(mean_ra), "Mean epoch-adjusted RA [deg]")
+    if np.isfinite(mean_dec):
+        header["EPMDEC"] = (float(mean_dec), "Mean epoch-adjusted Dec [deg]")
+
+    ra_std = stats.get("ra_std_arcsec", np.nan)
+    dec_std = stats.get("dec_std_arcsec", np.nan)
+    pos_std = stats.get("pos_std_arcsec", np.nan)
+    pos_max = stats.get("pos_max_sep_arcsec", np.nan)
+    if np.isfinite(ra_std):
+        header["EPRASTD"] = (float(ra_std), "RA scatter about mean [arcsec]")
+    if np.isfinite(dec_std):
+        header["EPDESTD"] = (float(dec_std), "Dec scatter about mean [arcsec]")
+    if np.isfinite(pos_std):
+        header["EPRDSTD"] = (float(pos_std), "Radial sep. scatter [arcsec]")
+    if np.isfinite(pos_max):
+        header["EPMAX"] = (float(pos_max), "Max sep. from mean pos [arcsec]")
+
+
 def save_spectrum_fits(
     spec: Table,
     ra: float,
@@ -2472,6 +2586,7 @@ def save_spectrum_fits(
     object_name: str,
     cfg: PipelineConfig,
     photometry_method: str | None = None,
+    coord_stats: dict | None = None,
 ):
     """Write one processed spectrum to a FITS binary table.
 
@@ -2490,6 +2605,9 @@ def save_spectrum_fits(
         value from cfg.photometry_method is used.  Passing this explicitly is
         important when cfg.photometry_method == "both", because aperture and
         PSF spectra must be written as separate products.
+    coord_stats
+        Optional statistics of the per-cutout epoch-adjusted coordinates.
+        When provided, these values are written to the primary FITS header.
     """
     ensure_output_directories(cfg.output_dir)
     method = str(photometry_method or cfg.photometry_method).lower().strip()
@@ -2500,7 +2618,17 @@ def save_spectrum_fits(
     if data_release != "unknown":
         hdu0.header["DATAREL"] = data_release
     hdu0.header["TARGET"] = f"{ra:.6f},{dec:.6f}"
+    hdu0.header["REFRA"] = (float(ra), "Input reference RA [deg]")
+    hdu0.header["REFDEC"] = (float(dec), "Input reference Dec [deg]")
+    if cfg.reference_epoch_yr is not None:
+        hdu0.header["REFEPOCH"] = (float(cfg.reference_epoch_yr), "Reference epoch [decimal year]")
+    if cfg.pmra_masyr is not None:
+        hdu0.header["PMRA"] = (float(cfg.pmra_masyr), "Proper motion RA*cosDec [mas/yr]")
+    if cfg.pmdec_masyr is not None:
+        hdu0.header["PMDEC"] = (float(cfg.pmdec_masyr), "Proper motion Dec [mas/yr]")
     hdu0.header["PHOTMET"] = (method, "Photometry method used for this spectrum")
+    if coord_stats is not None:
+        add_epoch_adjusted_coordinate_header(hdu0.header, coord_stats)
 
     hdul = fits.HDUList([hdu0, fits.BinTableHDU(spec, name="SPECTRUM")])
     out = Path(cfg.output_dir, "fits", f"{object_name}_{method}_spectrum.fits")
@@ -2627,6 +2755,10 @@ def run_spherex_pipeline(ra: float, dec: float, object_name: str | None = None, 
     else:
         print("WARNING: could not infer SPHEREx data release from opened cutouts.")
     print(f"Opened {len(good_cutouts)} usable cutouts")
+
+    coord_stats = compute_epoch_adjusted_coordinate_stats(good_cutouts)
+    print_epoch_adjusted_coordinate_stats(coord_stats)
+
     append_manifest_rows(
         build_cutout_manifest_rows(prepared_rows, cutouts, object_name, cfg),
         object_name,
@@ -2658,7 +2790,15 @@ def run_spherex_pipeline(ra: float, dec: float, object_name: str | None = None, 
         )
         final_spec = process_spectrum_table(raw_spec, cfg)
         final_specs[method] = final_spec
-        save_spectrum_fits(final_spec, ra, dec, object_name, cfg, photometry_method=method)
+        save_spectrum_fits(
+            final_spec,
+            ra,
+            dec,
+            object_name,
+            cfg,
+            photometry_method=method,
+            coord_stats=coord_stats,
+        )
         if cfg.plot_spectrum:
             plot_spectrum(final_spec, object_name, cfg, photometry_method=method)
 
