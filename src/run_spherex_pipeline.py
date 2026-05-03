@@ -11,7 +11,6 @@ ra, dec = 265.352586, 25.892878  # 2MASS
 pmra, pmdec = -495, -1472  # 2013ApJ...762..119M
 ref_epoch = Time("2000-04-11").decimalyear  # 2MASS
 
-"""
 object_name = "T8 2MASSI J0415195-093506"
 # Bad results
 # ra, dec = 63.831432, -9.585187  # 2MASS
@@ -137,7 +136,6 @@ object_name = "M7 VB 8"
 ra, dec = 253.8932463, -8.398523
 pmra, pmdec = -813.038, -870.609
 ref_epoch = 2016.0
-"""
 
 photometry_method = "both"  # "aperture" or "psf"
 outlier_nbr_of_bins = 8
