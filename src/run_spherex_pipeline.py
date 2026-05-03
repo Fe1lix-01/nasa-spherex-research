@@ -6,65 +6,83 @@ from spexpi.spherex_pipeline import PipelineConfig, run_spherex_pipeline
 # Spectral standards
 # ------------------------------------------------------
 
-ra, dec = 265.349, 25.882
+
 object_name = "T9 WISEP J174124.25+255319.5"
-fits_dir = "standards/data_alt"
+ra, dec = 265.352586, 25.892878  # 2MASS
+pmra, pmdec = -495, -1472  # 2013ApJ...762..119M
+ref_epoch = Time("2000-04-11").decimalyear  # 2MASS
 
-ra, dec = 63.849, -9.582
 object_name = "T8 2MASSI J0415195-093506"
-fits_dir = "spherex_qr2_downloads"
+ra, dec = 63.831432, -9.585187
+pmra, pmdec = 2193, 527  # 2009AJ....137....1F
+ref_epoch = 1999.0
 
-ra, dec = 111.835, 17.161
 object_name = "T7 2MASSI J0727182+171001"
-fits_dir = "spherex_qr2_downloads"
+ra, dec = 111.826025, 17.167002
+pmra, pmdec = 1046, -767  # 2009AJ....137....1F
+ref_epoch = 1999.0
 
-ra, dec = 226.6945, 70.4635
 object_name = "T6 2MASS J15065257+7027247"
-fits_dir = "standards/data_alt"
+ra, dec = 226.7026361, 70.4616191
+pmra, pmdec = -1194.179, 1042.194
+ref_epoch = 2016.0
 
-ra, dec = 225.833, 25.425
 object_name = "T5 2MASS J15031961+2525196"
-fits_dir = "standards/data"
+ra, dec = 225.8321423, 25.4246445
+pmra, pmdec = 87.414, 557.78
+ref_epoch = 2016.0
 
-ra, dec = 343.580, 31.398
 object_name = "T4 2MASSI J2254188+312349"
-fits_dir = "standards/data"
+ra, dec = 343.578834, 31.397175  # 2MASS
+pmra, pmdec = 67, 187  # 2013A&A...560A..52M
+ref_epoch = Time("1998-06-22").decimalyear  # 2MASS
 
-ra, dec = 104.043, 42.092
 object_name = "T3 2MASS J06560926+4205301"
-fits_dir = "standards/data_alt"
+ra, dec = 104.038623, 42.091709  # 2MASS
+pmra, pmdec = 321.0, 155.5  # 2020AJ....159..257B
+ref_epoch = Time("1998-11-05").decimalyear  # 2MASS
+# selected_aperture_radius_pix=1.0
+# psf_local_grid_half_range_pix=0.5
 
-ra, dec = 193.722, -1.380
+"""
 object_name = "T2 SDSSp J125453.90-012247.4"
-fits_dir = "standards/data"
+ra, dec = 193.7223713, -1.3793373
+pmra, pmdec = -514.451, 140.791  # NSC DR2
+ref_epoch = Time("2016-05-08 04:33:26").decimalyear
+# remove_outliers=False
 
-ra, dec = 191.624, -31.663
 object_name = "T1 2MASS J12462965-3139280"
-fits_dir = "standards/data_alt"
+ra, dec = 191.623491, -31.6604026
+pmra, pmdec = -14.163, -562.188
+ref_epoch = 2016.0
 
-ra, dec = 181.944, 2.740
 object_name = "T0 SDSS J120747.17+024424.8"
-fits_dir = "spherex_qr2_downloads"
+ra, dec = 181.9444058, 2.7407938
+pmra, pmdec = -529.769, 108.917  # NSC DR2
+ref_epoch = Time("2015-08-01 12:23:52").decimalyear
+# selected_aperture_radius_pix=1.0
+# keep_negative_flux=False
 
-ra, dec = 43.777, -47.019
 object_name = "L9 DENIS-P J0255-4700"
-fits_dir = "standards/data"
+ra, dec = 43.7719859, -47.0167284
+pmra, pmdec = 1012.445, -554.031
+ref_epoch = 2016.0
 
 object_name = "L8 2MASSW J1632291+190441"
 ra, dec = 248.123048, 19.0776561
-pmra, pmdec = 233.784, -58.5  # NSC DR2 ----------------------------------------> to check !!!
+pmra, pmdec = 233.784, -58.5  # NSC DR2
 ref_epoch = Time("2017-08-07 06:15:33").decimalyear
+# selected_aperture_radius_pix=1.0
 
 object_name = "L7 2MASSW J2148162+400359"
 ra, dec = 327.0723955, 40.0685178
 pmra, pmdec = 772.176, 458.243
 ref_epoch = 2016.0
 
-"""
 object_name = "L6 2MASSI J1010148-040649"
 ra, dec = 152.561696, -4.11387
 pmra, pmdec = -324.2, -17.8  # 2020AJ....159..257B
-ref_epoch = 2000.0
+ref_epoch = 2000.0 -----------------------------------------------------------------------------------> 2MASS obs date ?
 # selected_aperture_radius_pix=1.0
 # outlier_nbr_of_bins = 4
 
@@ -115,9 +133,6 @@ ra, dec = 253.8932463, -8.398523
 pmra, pmdec = -813.038, -870.609
 ref_epoch = 2016.0
 """
-
-# pmra, pmdec = 0, 0
-# ref_epoch = Time("2017-10-11 07:58:57").decimalyear
 
 photometry_method = "both"  # "aperture" or "psf"
 outlier_nbr_of_bins = 8
