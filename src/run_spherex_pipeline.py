@@ -12,15 +12,22 @@ ra, dec = 265.352586, 25.892878  # 2MASS
 pmra, pmdec = -495, -1472  # 2013ApJ...762..119M
 ref_epoch = Time("2000-04-11").decimalyear  # 2MASS
 
+"""
 object_name = "T8 2MASSI J0415195-093506"
-ra, dec = 63.831432, -9.585187
-pmra, pmdec = 2193, 527  # 2009AJ....137....1F
-ref_epoch = 1999.0
+# Bad results
+# ra, dec = 63.831432, -9.585187  # 2MASS
+# pmra, pmdec = 2193, 527  # 2009AJ....137....1F
+# ref_epoch = Time("1998-11-15").decimalyear  # 2MASS
+ra, dec = 63.849, -9.582  # determined from stacked SPHEREx images
+ref_epoch = None
 
 object_name = "T7 2MASSI J0727182+171001"
-ra, dec = 111.826025, 17.167002
+ra, dec = 111.826025, 17.167002  # 2MASS
 pmra, pmdec = 1046, -767  # 2009AJ....137....1F
-ref_epoch = 1999.0
+ref_epoch = Time("1997-10-29").decimalyear  # 2MASS
+# selected_aperture_radius_pix=1.0
+# psf_local_grid_half_range_pix=0.5
+# keep_negative_flux = False
 
 object_name = "T6 2MASS J15065257+7027247"
 ra, dec = 226.7026361, 70.4616191
@@ -44,11 +51,10 @@ ref_epoch = Time("1998-11-05").decimalyear  # 2MASS
 # selected_aperture_radius_pix=1.0
 # psf_local_grid_half_range_pix=0.5
 
-"""
 object_name = "T2 SDSSp J125453.90-012247.4"
-ra, dec = 193.7223713, -1.3793373
+ra, dec = 193.7223713, -1.3793373  # NSC DR2
 pmra, pmdec = -514.451, 140.791  # NSC DR2
-ref_epoch = Time("2016-05-08 04:33:26").decimalyear
+ref_epoch = Time("2016-05-08 04:33:26").decimalyear  # NSC DR2
 # remove_outliers=False
 
 object_name = "T1 2MASS J12462965-3139280"
@@ -57,9 +63,9 @@ pmra, pmdec = -14.163, -562.188
 ref_epoch = 2016.0
 
 object_name = "T0 SDSS J120747.17+024424.8"
-ra, dec = 181.9444058, 2.7407938
+ra, dec = 181.9444058, 2.7407938  # NSC DR2
 pmra, pmdec = -529.769, 108.917  # NSC DR2
-ref_epoch = Time("2015-08-01 12:23:52").decimalyear
+ref_epoch = Time("2015-08-01 12:23:52").decimalyear  # NSC DR2
 # selected_aperture_radius_pix=1.0
 # keep_negative_flux=False
 
@@ -69,9 +75,9 @@ pmra, pmdec = 1012.445, -554.031
 ref_epoch = 2016.0
 
 object_name = "L8 2MASSW J1632291+190441"
-ra, dec = 248.123048, 19.0776561
+ra, dec = 248.123048, 19.0776561  # NSC DR2
 pmra, pmdec = 233.784, -58.5  # NSC DR2
-ref_epoch = Time("2017-08-07 06:15:33").decimalyear
+ref_epoch = Time("2017-08-07 06:15:33").decimalyear  # NSC DR2
 # selected_aperture_radius_pix=1.0
 
 object_name = "L7 2MASSW J2148162+400359"
@@ -80,16 +86,16 @@ pmra, pmdec = 772.176, 458.243
 ref_epoch = 2016.0
 
 object_name = "L6 2MASSI J1010148-040649"
-ra, dec = 152.561696, -4.11387
+ra, dec = 152.561696, -4.11387  # 2MASS
 pmra, pmdec = -324.2, -17.8  # 2020AJ....159..257B
-ref_epoch = 2000.0 -----------------------------------------------------------------------------------> 2MASS obs date ?
+ref_epoch = Time("1998-12-27").decimalyear  # 2MASS
 # selected_aperture_radius_pix=1.0
 # outlier_nbr_of_bins = 4
 
 object_name = "L5 SDSS J083506.16+195304.4"
-ra, dec = 128.775097, 19.884142
+ra, dec = 128.775097, 19.884142  # NSC DR2
 pmra, pmdec = -141.852, -142.771  # NSC DR2
-ref_epoch = Time("2016-10-24 03:31:24").decimalyear
+ref_epoch = Time("2016-10-24 03:31:24").decimalyear  # NSC DR2
 # selected_aperture_radius_pix=1.0
 # outlier_nbr_of_bins = 4
 
