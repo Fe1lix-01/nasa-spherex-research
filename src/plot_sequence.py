@@ -137,13 +137,63 @@ def plot_curves(ax, wl, flux, err, color):
     )
 
 
+def add_standard_reference_box(ax, text, title=None):
+    """Add a compact reference textbox below an axes.
+
+    The position uses axes coordinates so the box stays attached to the
+    corresponding panel even if the figure size or data limits change.
+    """
+    box_text = f"{title}\n{text}" if title else text
+    ax.text(
+        0.5,
+        -0.05,
+        box_text,
+        transform=ax.transAxes,
+        ha="center",
+        va="top",
+        fontsize=16,
+        linespacing=2.0,
+        multialignment="left",
+        bbox={
+            "boxstyle": "square,pad=0.45",
+            "facecolor": "white",
+            "edgecolor": "0.35",
+            "linewidth": 0.8,
+            "alpha": 0.95,
+        },
+        clip_on=False,
+    )
+
+
 warnings.simplefilter("ignore")
 
-flux_type = "F_nu"  # "F_lambda" or "F_nu"
+flux_type = "F_lambda"  # "F_lambda" or "F_nu"
 color_aperture = "k"
 color_psf = "tab:red"
 plot_bands = False
 offset_step = 0.9  # vertical spacing between spectra
+
+L_STANDARD_REFERENCES = """L0, 2MASP J0345432+254023, J. D. Kirkpatrick et al. (1999)
+L1, 2MASSW J1439284+192915, J. D. Kirkpatrick et al. (1999)
+L2, Kelu-1, J. D. Kirkpatrick et al. (1999)
+L3, 2MASSW J1506544+132106, J. E. Gizis et al. (2000)
+L4, 2MASS J21580457-1550098, J. D. Kirkpatrick et al. (2008)
+L5, SDSS J083506.16+195304.4, K. Chiu et al. (2006)
+L6, 2MASSI J1010148-040649, K. L. Cruz et al. (2003)
+L7, 2MASSW J2148162+400359, A. C. Schneider et al. (2014)
+L8, 2MASSW J1632291+190441, J. D. Kirkpatrick et al. (1999)
+L9, DENIS-P J0255-4700, J. D. Kirkpatrick et al. (2008)"""
+
+T_STANDARD_REFERENCES = """T0, SDSS J120747.17+024424.8, S. L. Hawley et al. (2002)
+T1, 2MASS J12462965-3139280, G. N. Mace et al. (2013)
+T2, SDSSp J125453.90-012247.4, A. J. Burgasser et al. (2006)
+T3, 2MASS J06560926+4205301, R. L. Griffith et al. (2012)
+T4, 2MASSI J2254188+312349, A. J. Burgasser et al. (2006)
+T5, 2MASS J15031961+2525196, A. J. Burgasser et al. (2006)
+T6, 2MASS J15065257+7027247, R. L. Griffith et al. (2012)
+T7, 2MASSI J0727182+171001, A. J. Burgasser et al. (2006)
+T8, 2MASSI J0415195-093506, A. J. Burgasser et al. (2006)
+T9, WISEP J174124.25+255319.5, R. L. Griffith et al. (2012)"""
 
 standards_aperture = get_standards("../resources/standards/sequence/aperture")
 L_standards_aperture = [s for s in standards_aperture if s["SpT"].startswith("L")]
@@ -165,7 +215,7 @@ plt.rcParams.update({
     "mathtext.rm": "Arial"
 })
 
-fig, axes = plt.subplots(1, 2, figsize=(20, 20), sharey=True)
+fig, axes = plt.subplots(1, 2, figsize=(20, 25), sharey=True)
 ax_L, ax_T = axes
 
 plot_group(ax_L, L_standards_aperture, color_aperture)
@@ -208,32 +258,22 @@ if plot_bands:
     plt.axvline(4.5, color="tab:blue", linewidth=lw, linestyle="--")
     plt.axvline(4.8, color="tab:blue", linewidth=lw, linestyle="--")
 
-# Add a textbox to list the names of L and T standards
-"""
-SpT,Name,SpT References
-L0.0,2MASP J0345432+254023,J. D. Kirkpatrick et al. (1999)
-L1.0,2MASSW J1439284+192915,J. D. Kirkpatrick et al. (1999)
-L2.0,Kelu-1,J. D. Kirkpatrick et al. (1999)
-L3.0,2MASSW J1506544+132106,J. E. Gizis et al. (2000)
-L4.0,2MASS J21580457-1550098,J. D. Kirkpatrick et al. (2008)
-L5.0,SDSS J083506.16+195304.4,K. Chiu et al. (2006)
-L6.0,2MASSI J1010148-040649,K. L. Cruz et al. (2003)
-L7.0,2MASSI J0103320+193536,H. Bouy et al. (2022) -> contaminated by a background galaxy -> the current replacement is a young L7, so not suited for field standards
-L8.0,2MASSW J1632291+190441,J. D. Kirkpatrick et al. (1999)
-L9.0,DENIS-P J0255-4700,J. D. Kirkpatrick et al. (2008)
-T0.0,SDSS J120747.17+024424.8,S. L. Hawley et al. (2002)
-T1.0,SDSSp J083717.22-000018.3,A. J. Burgasser et al. (2006) replaced by 2MASS J12462965-3139280, G. N. Mace et al. (2013)
-T2.0,SDSSp J125453.90-012247.4,A. J. Burgasser et al. (2006)
-T3.0,2MASS J12095613-1004008,A. J. Burgasser et al. (2006) replaced by 2MASS J06560926+4205301, R. L. Griffith et al. (2012)
-T4.0,2MASSI J2254188+312349,A. J. Burgasser et al. (2006)
-T5.0,2MASS J15031961+2525196,A. J. Burgasser et al. (2006)
-T6.0,SDSSp J162414.37+002915.6,A. J. Burgasser et al. (2006) replaced by 2MASS J15065257+7027247, R. L. Griffith et al. (2012)
-T7.0,2MASSI J0727182+171001,A. J. Burgasser et al. (2006)
-T8.0,2MASSI J0415195-093506,A. J. Burgasser et al. (2006)
-T9.0,UGPS J072227.51-054031.2,A. J. Burgasser et al. (2006) replaced by WISEP J174124.25+255319.5, R. L. Griffith et al. (2012)
-"""
+# Reference boxes below each sequence plot.
+add_standard_reference_box(ax_L, L_STANDARD_REFERENCES, title="L dwarf standards")
+add_standard_reference_box(ax_T, T_STANDARD_REFERENCES, title="T dwarf standards")
 
 file_name = f"standards_{flux_type}.pdf"
+
+from matplotlib.patches import Rectangle
+
+# Add invisible rectangle below figure to force bottom padding
+fig.add_artist(Rectangle(
+    (0, -0.01),  # (x, y) in figure coordinates → y < 0 pushes bottom margin
+    1, 0.1,  # width, height
+    transform=fig.transFigure,
+    facecolor="none",
+    edgecolor="none"
+))
 
 plt.tight_layout()
 plt.savefig("../resources/standards/sequence/" + file_name, dpi=300, bbox_inches="tight")
