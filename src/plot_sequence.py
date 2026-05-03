@@ -167,7 +167,7 @@ def add_standard_reference_box(ax, text, title=None):
 
 warnings.simplefilter("ignore")
 
-flux_type = "F_lambda"  # "F_lambda" or "F_nu"
+flux_type = "F_nu"  # "F_lambda" or "F_nu"
 color_aperture = "k"
 color_psf = "tab:red"
 plot_bands = False
@@ -224,7 +224,7 @@ plot_group(ax_T, T_standards_aperture, color_aperture)
 plot_group(ax_L, L_standards_psf, color_psf, plot_spt=False)
 min_y, max_y = plot_group(ax_T, T_standards_psf, color_psf, plot_spt=False)
 
-# fig.suptitle("Aperture (black) vs. PSF (red) photometry", fontsize=26)
+fig.suptitle("Aperture (black) vs. PSF (red) photometry", fontsize=26)
 
 ax_L.set_title("SPHEREx L dwarfs standards")
 ax_T.set_title("SPHEREx T dwarfs standards")
