@@ -9,7 +9,6 @@ from astropy.nddata import Cutout2D
 from reproject import reproject_interp
 from reproject.mosaicking import find_optimal_celestial_wcs
 
-from .image_plotter import plot_images
 from .shared import create_object_name
 
 
@@ -21,8 +20,7 @@ def _crop_center(data, shape):
     return data[sy: sy + cy, sx: sx + cx]
 
 
-def create_images(ra, dec, data_dir, output_dir, object_name=None, cutout_size_arcsec=100,
-                  save_as_fits=False, open_plot=False, plot_format="pdf"):
+def stack_images(ra, dec, data_dir, output_dir, object_name=None, image_size_arcsec=100, save_fits=False):
     # ----------------------------------------------------------
     # 1. Config
     # ----------------------------------------------------------
@@ -54,7 +52,7 @@ def create_images(ra, dec, data_dir, output_dir, object_name=None, cutout_size_a
 
             wcs, shape = find_optimal_celestial_wcs([hdu])
             image, _ = reproject_interp(hdu, wcs, shape_out=shape)
-            image_cutout = Cutout2D(image, target, cutout_size_arcsec * u.arcsec, wcs=wcs, mode="partial")
+            image_cutout = Cutout2D(image, target, image_size_arcsec * u.arcsec, wcs=wcs, mode="partial")
 
             flags, _ = reproject_interp(hdul["FLAGS"], wcs, shape_out=shape)
             # FLAGS is an integer bitmask plane; in partial mode, padding must be an integer.
@@ -65,14 +63,14 @@ def create_images(ra, dec, data_dir, output_dir, object_name=None, cutout_size_a
             flags_cutout = Cutout2D(
                 flags_int,
                 target,
-                cutout_size_arcsec * u.arcsec,
+                image_size_arcsec * u.arcsec,
                 wcs=wcs,
                 mode="partial",
                 fill_value=0,
             )
 
             zodi, _ = reproject_interp(hdul["ZODI"], wcs, shape_out=shape)
-            zodi_cutout = Cutout2D(zodi, target, cutout_size_arcsec * u.arcsec, wcs=wcs, mode="partial")
+            zodi_cutout = Cutout2D(zodi, target, image_size_arcsec * u.arcsec, wcs=wcs, mode="partial")
 
             detector_images[detector].append(
                 (date_obs, image_cutout.data - zodi_cutout.data, image_cutout.wcs.to_header(), flags_cutout.data)
@@ -116,27 +114,13 @@ def create_images(ra, dec, data_dir, output_dir, object_name=None, cutout_size_a
         # Create FITS
         hdu = fits.PrimaryHDU(mean_image, header=ref_header)
 
-        if save_as_fits:
+        if save_fits:
             hdu.writeto(
-                os.path.join(output_dir, object_name + f"_D{det}_{cutout_size_arcsec}_arcsec_cutout.fits"),
+                os.path.join(output_dir, object_name + f"_D{det}_{image_size_arcsec}_arcsec_cutout.fits"),
                 overwrite=True
             )
             print(f"Saved stacked cutout for detector {det}")
 
         cutouts.append({"hdu": hdu, "band": f"D{det}", "phot_radii": phot_radii[f"{det}"]})
 
-    # ----------------------------------------------------------
-    # 4. Plot and save the images in a multi-band format
-    # ----------------------------------------------------------
-    plot_images(
-        ra,
-        dec,
-        cutouts,
-        cutout_size_arcsec,
-        object_name=object_name,
-        image_contrast=10,
-        aper_radius=aper_radius,
-        output_dir=output_dir,
-        open_plot=open_plot,
-        plot_format=plot_format,
-    )
+    return cutouts

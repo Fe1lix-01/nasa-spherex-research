@@ -15,8 +15,8 @@ from .shared import create_object_name, open_file
 
 
 def plot_images(
-    ra, dec, images, img_size, object_name=None, image_contrast=10, aper_radius=2.0,
-    output_dir=tempfile.gettempdir(), open_plot=True, plot_format="png"
+    ra, dec, images, image_size, image_contrast=10, object_name=None,
+    output_dir=tempfile.gettempdir(), save_plot=False, open_plot=True, plot_format="png"
 ):
     """
     Generate and save a grid of astronomical images, including individual band images and a combined RGB image.
@@ -28,8 +28,8 @@ def plot_images(
             - 'hdu': FITS HDU object containing image data and header.
             - 'band': String representing the band name (e.g., 'r', 'g', 'b').
             - 'rgb': String indicating the RGB channel ('r', 'g', or 'b').
-        img_size (float): Size of the image in arcseconds.
-        aper_radius (float, optional): Radius of the circular aperture in pixels. Default is 3.0.
+        image_size (float): Size of the image in arcseconds.
+        aper_radius (float, optional): Radius of the circular aperture in pixels. Default is 2.0.
         image_contrast (int, optional): Contrast adjustment for the images. Default is 10.
         output_dir (str, optional): Directory to save the output image. Default is the system's temporary directory.
         open_plot (bool, optional): Whether to open the saved plot after creation. Default is True.
@@ -83,16 +83,13 @@ def plot_images(
         )
         ax.add_patch(Rectangle((0, 0), 1, 1, fill=False, lw=0.2, ec="black", transform=ax.transAxes))
 
-        # Flip the image: top-bottom and right-left
-        # data = np.flipud(np.fliplr(data))
-
         vmin, vmax = get_min_max(data)
         ax.imshow(data, vmin=vmin, vmax=vmax, cmap="gray_r")
         ax.axis("off")
 
         return data, x, y
 
-    def create_color_image(r, g, b, img_idx, band, x, y, invert=False):
+    def create_color_image(r, g, b, img_idx, band, invert=False):
         """
         Create and plot an RGB color image.
 
@@ -121,9 +118,6 @@ def plot_images(
         rgb = Image.merge("RGB", (r, g, b))
 
         ax = fig.add_subplot(rows, cols, img_idx)
-
-        # circle = Circle((x, y), radius=aper_radius, edgecolor="red", facecolor="none", lw=0.5)
-        # ax.add_patch(circle)
 
         ax.text(
             0.03,
@@ -208,7 +202,7 @@ def plot_images(
         phot_radii = image["phot_radii"]
 
         print(f"Creating {band}-band image")
-        data, x, y = create_image(hdu, img_idx, band, phot_radii)
+        data, _, _ = create_image(hdu, img_idx, band, phot_radii)
 
         image_data[band] = data
         img_idx += 1
@@ -230,7 +224,7 @@ def plot_images(
     r_band = "D56"
 
     print("Creating color image")
-    create_color_image(r_data, g_data, b_data, img_idx, f"{r_band}-{g_band}-{b_band}", x, y)
+    create_color_image(r_data, g_data, b_data, img_idx, f"{r_band}-{g_band}-{b_band}")
     img_idx += 1
 
     target_name = create_object_name(ra, dec, precision=2, shortform=False, prefix="J", decimal=False)
@@ -241,12 +235,14 @@ def plot_images(
     ax.text(0.1, 0.80, source_name, fontsize=fontsize, transform=ax.transAxes)
     ax.text(0.1, 0.65, r"$\alpha$ = " + str(round(ra, 7)), fontsize=fontsize, transform=ax.transAxes)
     ax.text(0.1, 0.50, r"$\delta$ = " + str(round(dec, 7)), fontsize=fontsize, transform=ax.transAxes)
-    ax.text(0.1, 0.35, "Size = " + str(int(img_size)) + " arcsec", fontsize=fontsize, transform=ax.transAxes)
+    ax.text(0.1, 0.35, "Size = " + str(int(image_size)) + " arcsec", fontsize=fontsize, transform=ax.transAxes)
     ax.text(0.1, 0.20, "North up, East left", fontsize=fontsize, transform=ax.transAxes)
     ax.axis("off")
     img_idx += 1
 
-    plt.savefig(filename, dpi=600, bbox_inches="tight", format=plot_format)
+    if save_plot:
+        plt.savefig(filename, dpi=600, bbox_inches="tight", format=plot_format)
+
     plt.close()
 
     if open_plot:

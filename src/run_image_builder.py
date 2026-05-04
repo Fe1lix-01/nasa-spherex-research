@@ -1,6 +1,7 @@
 import warnings
 
-from spexpi.image_builder import create_images
+from spexpi.image_plotter import plot_images
+from spexpi.image_stacker import stack_images
 
 warnings.filterwarnings("ignore")
 
@@ -77,8 +78,21 @@ object_name = "M8 VB 10"
 ra, dec = 253.892, -8.401
 object_name = "M7 VB 8"
 
-cutout_size_arcsec = 100
+image_size_arcsec = 100
 data_dir = "../resources/standards/data/" + object_name.replace(" ", "_")
 output_dir = "../resources/standards/images"
 
-create_images(ra, dec, data_dir, output_dir, object_name, cutout_size_arcsec, open_plot=True)
+images = stack_images(ra, dec, data_dir, output_dir, object_name, image_size_arcsec, save_fits=False)
+
+plot_images(
+    ra,
+    dec,
+    images,
+    image_size_arcsec,
+    image_contrast=10,
+    object_name=object_name,
+    output_dir=output_dir,
+    save_plot=False,
+    open_plot=True,
+    plot_format="pdf",
+)
