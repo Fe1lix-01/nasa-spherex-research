@@ -82,7 +82,7 @@ image_size_arcsec = 100
 data_dir = "../resources/standards/data/" + object_name.replace(" ", "_")
 output_dir = "../resources/standards/images"
 
-images = stack_images(ra, dec, data_dir, output_dir, object_name, image_size_arcsec, save_fits=False)
+images = stack_images(ra, dec, data_dir, output_dir, object_name, image_size_arcsec, save_fits=False, verbose=False)
 
 plot_images(
     ra,

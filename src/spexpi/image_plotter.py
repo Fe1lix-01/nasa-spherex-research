@@ -293,7 +293,6 @@ def _plot_cutout_panels(
     panel = start_panel
     for cutout in cutouts:
         _plot_single_cutout(figure, config, panel, cutout)
-        print(f"Plotted {cutout.band} band image")
         panel += 1
     return panel
 
@@ -341,7 +340,6 @@ def _plot_rgb_panel(
     label = "D56-D34-D12"
 
     _plot_color_image(figure, config, panel, red, green, blue, label)
-    print("Plotted color image")
     return panel + 1
 
 
@@ -403,10 +401,14 @@ def _plot_information_panel(
     """Plot the final text panel containing target and cutout metadata."""
 
     axis = figure.add_subplot(config.rows, config.cols, panel)
+
+    def fmt_coord(x, decimals=7):
+        return f"{x:.{decimals}f}".rstrip("0").rstrip(".")
+
     lines = [
         (0.80, source_name),
-        (0.65, rf"$\alpha$ = {ra:.7f}"),
-        (0.50, rf"$\delta$ = {dec:.7f}"),
+        (0.65, rf"$\alpha$ = {fmt_coord(ra)}"),
+        (0.50, rf"$\delta$ = {fmt_coord(dec)}"),
         (0.35, f"Size = {int(image_size)} arcsec"),
         (0.20, "North up, East left"),
     ]
