@@ -92,7 +92,6 @@ plot_images(
     image_contrast=10,
     object_name=object_name,
     output_dir=output_dir,
-    save_plot=False,
     open_plot=True,
     plot_format="pdf",
 )
