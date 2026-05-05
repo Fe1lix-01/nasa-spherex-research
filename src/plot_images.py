@@ -87,9 +87,9 @@ object_name = "T2 SIMP J013656.5+093347.3"
 
 image_size_arcsec = 100
 data_dir = "../resources/objects/data/" + object_name.replace(" ", "_")
-output_dir = "../resources/objects/images"
+output_dir = "../resources/objects/images_v2"
 
-images = stack_images(ra, dec, data_dir, output_dir, object_name, image_size_arcsec, save_fits=False, verbose=False)
+images = stack_images(ra, dec, data_dir, output_dir, object_name, image_size_arcsec, save_fits=True, verbose=False)
 
 plot_images(
     ra,

@@ -179,6 +179,7 @@ def plot_images(
     cutouts = _normalize_cutouts(images)
     _validate_config(config)
 
+    output_dir += "/plots"
     target_name = create_object_name(ra, dec, precision=2, shortform=False, prefix="J", decimal=False)
     source_name = object_name or target_name
     output_path = _build_output_path(source_name, output_dir, plot_format)

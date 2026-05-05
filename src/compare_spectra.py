@@ -54,12 +54,12 @@ for i, filename in enumerate(fits_files):
 
 # Load observed spectrum
 object_name = "T2 SIMP J013656.5+093347.3"
-fits_path = "../resources/objects/fits/T2 SIMP J013656.5+093347.3_psf_spectrum.fits"
+fits_path = "../resources/objects/spectra/fits/T2 SIMP J013656.5+093347.3_psf_spectrum.fits"
 
 plot_observed_error = True
 plot_template_error = False
 plot_format = "pdf"
-output_dir = "../resources/objects/plots"
+output_dir = "../resources/objects/spectra/plots"
 
 wavelength, flux, flux_error = extract_spectrum_from_fits(fits_path)
 

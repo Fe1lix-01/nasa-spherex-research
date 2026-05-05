@@ -230,7 +230,7 @@ cfg = PipelineConfig(
     # ============================================================
     # 7. OUTPUT & VISUALIZATION
     # ============================================================
-    output_dir="../resources/objects",
+    output_dir="../resources/objects/spectra",
     plot_spectrum=True,
 
     # ============================================================

@@ -391,7 +391,7 @@ def _save_stacked_hdu(
 ) -> Path:
     """Write one stacked detector image to disk and return the saved path."""
 
-    directory = Path(output_dir)
+    directory = Path(output_dir + "/fits")
     directory.mkdir(parents=True, exist_ok=True)
 
     size_label = f"{image_size_arcsec:g}"
