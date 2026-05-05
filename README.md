@@ -1,5 +1,7 @@
 # SPExPI — SPHEREx Spectrum Extraction Pipeline
 
+<img src="assets/SPHEREx spectral extraction emblem.png" alt="SPHEREx spectral extraction emblem" style="display: block; margin: auto; width: 50%;">
+
 SPExPI is a Python toolkit for extracting and inspecting low-resolution SPHEREx spectrophotometry of point sources. It
 was designed around brown-dwarf and ultracool-dwarf use cases, including high proper-motion targets, but the core
 pipeline can be applied to any isolated point source covered by SPHEREx image products.
