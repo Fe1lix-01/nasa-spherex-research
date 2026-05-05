@@ -5,7 +5,7 @@
 </p>
 
 SPExPI is a Python toolkit for extracting and inspecting low-resolution SPHEREx spectrophotometry of point sources. It
-was designed around brown-dwarf and ultracool-dwarf use cases, including high proper-motion targets, but the core
+was designed around ultracool-dwarf use cases, including high proper-motion targets, but the core
 pipeline can be applied to any isolated point source covered by SPHEREx image products.
 
 The repository contains three main workflows:
@@ -344,15 +344,21 @@ Expected products include:
 ../resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_psf_spectrum.pdf
 ```
 
+When `photometry_method="aperture"` or `photometry_method="psf"`, the first return value is a single
+`astropy.table.Table`. When `photometry_method="both"`, the first return value is a dictionary with keys such as
+`"aperture"` and `"psf"`.
+
 Spectrum plots:
 
 <img src="resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_aperture_spectrum.png" alt="Spectrum Aperture" style="width:70%; height:auto;">
 
 <img src="resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_psf_spectrum.png" alt="Spectrum PSF" style="width:70%; height:auto;">
 
-When `photometry_method="aperture"` or `photometry_method="psf"`, the first return value is a single
-`astropy.table.Table`. When `photometry_method="both"`, the first return value is a dictionary with keys such as
-`"aperture"` and `"psf"`.
+Above spectra are binned by spectral channel. Unbinnded versions are also available with `reduce_oversampling=False`:
+
+<img src="resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_aperture_spectrum_unbinned.png" alt="Spectrum Aperture Unbinnded" style="width:70%; height:auto;">
+
+<img src="resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_psf_spectrum_unbinned.png" alt="Spectrum PSF Unbinnded" style="width:70%; height:auto;">
 
 ### b) Compare an observed spectrum to templates
 

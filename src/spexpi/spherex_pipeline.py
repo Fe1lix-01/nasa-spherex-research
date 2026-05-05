@@ -283,6 +283,12 @@ class PipelineConfig:
     plot_color: str = "k"
     """Matplotlib color for the final diagnostic spectrum plot."""
 
+    plot_spline: bool = True
+    """If True, plot a spline over the spectrum data points."""
+
+    spline_density: int = 1000
+    """Number of spline points for the spectrum plot."""
+
 
 def validate_config(cfg: PipelineConfig) -> None:
     """
@@ -2683,8 +2689,8 @@ def plot_spectrum(spec: Table, object_name: str, cfg: PipelineConfig, photometry
     color = cfg.plot_color
     order = np.argsort(wl.value)
     x, y, e = wl.value[order], fl.value[order], er.value[order]
-    if len(x) >= 3:
-        xd = np.linspace(x.min(), x.max(), 1000)
+    if len(x) >= 3 and cfg.plot_spline:
+        xd = np.linspace(x.min(), x.max(), cfg.spline_density)
         plt.plot(xd, PchipInterpolator(x, y)(xd), lw=1, c=color, alpha=0.4, zorder=2)
     plt.errorbar(
         x,
