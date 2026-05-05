@@ -137,6 +137,15 @@ ra, dec = 253.8932463, -8.398523
 pmra, pmdec = -813.038, -870.609
 ref_epoch = 2016.0
 
+# ------------------------------------------------------
+# Test cases
+# ------------------------------------------------------
+
+object_name = "T2 SIMP J013656.5+093347.3"
+ra, dec = 24.2412498, 9.5630705
+pmra, pmdec = 1238.244, -16.156
+ref_epoch = 2016.0
+
 photometry_method = "both"  # "aperture" or "psf"
 outlier_nbr_of_bins = 8
 
@@ -202,7 +211,7 @@ cfg = PipelineConfig(
     cutout_size_arcsec=120,  # cutout size
     max_workers=8,  # parallel download threads (adjust based on your system and network)
 
-    download_dir="../resources/standards/data",  # local cache directory
+    download_dir="../resources/objects/data",  # local cache directory
     redownload_existing_files=False,  # reuse cached FITS
 
     # If False → skip IRSA query and use existing local FITS
@@ -221,7 +230,7 @@ cfg = PipelineConfig(
     # ============================================================
     # 7. OUTPUT & VISUALIZATION
     # ============================================================
-    output_dir="../resources/standards",
+    output_dir="../resources/objects",
     plot_spectrum=True,
 
     # ============================================================

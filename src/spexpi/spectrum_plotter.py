@@ -225,7 +225,7 @@ def create_comparison_plot(
             va="center"
         )
 
-    filename = os.path.join(output_dir, object_name + "_spectrum." + plot_format)
+    filename = os.path.join(output_dir, object_name + "_comparison." + plot_format)
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     ax.set_xlabel(xlabel)
