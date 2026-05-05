@@ -174,7 +174,7 @@ The final spectrum FITS header stores useful metadata, including:
 ## Repository layout
 
 ```text
-.
+src
 ├── compare_spectra.py
 ├── plot_images.py
 ├── plot_sequence.py
@@ -205,15 +205,8 @@ Main modules:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/<your-username>/<your-repository-name>.git
-cd <your-repository-name>
-```
-
-Example:
-
-```bash
-git clone https://github.com/<your-username>/spherex-spectrum-pipeline.git
-cd spherex-spectrum-pipeline
+git clone https://github.com/fkiwy/spexpi.git
+cd spexpi
 ```
 
 ### 2. Create a virtual environment
@@ -228,9 +221,6 @@ Activate it:
 # Linux / macOS
 source .venv/bin/activate
 
-# Windows PowerShell
-.venv\Scripts\Activate.ps1
-
 # Windows cmd
 .venv\Scripts\activate.bat
 ```
@@ -239,12 +229,6 @@ source .venv/bin/activate
 
 ```bash
 pip install .
-```
-
-For development:
-
-```bash
-pip install -e .[dev]
 ```
 
 ### 4. Optional plotting/image dependencies
