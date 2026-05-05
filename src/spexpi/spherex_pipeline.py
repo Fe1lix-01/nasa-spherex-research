@@ -136,10 +136,10 @@ class PipelineConfig:
     # ------------------------------------------------------------------
     # Aperture photometry and local background estimation
     # ------------------------------------------------------------------
-    aperture_radii_pix: tuple[float, ...] = (3.0, 4.0, 5.0)
+    aperture_radii_pix: tuple[float, ...] = (1.0, 2.0, 3.0)
     """Aperture radii, in pixels, measured for each cutout."""
 
-    selected_aperture_radius_pix: float = 3.0
+    selected_aperture_radius_pix: float = 2.0
     """Aperture radius selected when building the final aperture spectrum."""
 
     annulus_inner_scale: float = 2.0
@@ -259,7 +259,7 @@ class PipelineConfig:
     # ------------------------------------------------------------------
     # Output products and plotting
     # ------------------------------------------------------------------
-    output_dir: str = "spherex_aperture_spectra"
+    output_dir: str = "spherex_spectra"
     """Base output directory for spectra, plots, and optional manifests."""
 
     save_raw_measurements: bool = False
