@@ -356,6 +356,10 @@ Expected products include:
 ../resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_psf_spectrum.pdf
 ```
 
+<img src="resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_aperture_spectrum.png" alt="Spectrum Aperture" style="width:70%; height:auto;">
+
+<img src="resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_psf_spectrum.png" alt="Spectrum PSF" style="width:70%; height:auto;">
+
 When `photometry_method="aperture"` or `photometry_method="psf"`, the first return value is a single
 `astropy.table.Table`. When `photometry_method="both"`, the first return value is a dictionary with keys such as
 `"aperture"` and `"psf"`.
@@ -460,6 +464,18 @@ Supported scaling modes include:
 - `original`
 - `none`
 
+Comparison plot:
+
+<img src="resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_comparison.png" alt="Alt Text" style="width:70%; height:auto;">
+
+Spectral standards used for comparison:
+
+![Spectral standards F nu](resources/standards/sequence/standards_F_nu.png)
+
+Same as above in units of `F_lambda`:
+
+![Spectral standards F lambda](resources/standards/sequence/standards_F_lambda.png)
+
 ### c) Stack and plot images
 
 This example is based on `plot_images.py`. It creates stacked detector images for visual inspection and then generates a
@@ -507,6 +523,8 @@ plot_images(
 
 The image workflow is useful for checking whether the target is centered, whether nearby sources contaminate the
 aperture, and whether a detector-specific issue is present.
+
+![Images](resources/objects/images/plots/T2 SIMP J013656.5+093347.3_images.png)
 
 ---
 
