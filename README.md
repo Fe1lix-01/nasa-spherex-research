@@ -1,6 +1,6 @@
 # SPExPI — SPHEREx Spectrum Extraction Pipeline
 
-<div style="display: flex; justify-content: center;">
+<div style="text-align:center">
 <img src="assets/SPHEREx spectral extraction emblem.png" alt="SPHEREx spectral extraction emblem" style="width:50%; height:auto;">
 </div>
 
