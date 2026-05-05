@@ -356,6 +356,8 @@ Expected products include:
 ../resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_psf_spectrum.pdf
 ```
 
+Spectrum plots:
+
 <img src="resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_aperture_spectrum.png" alt="Spectrum Aperture" style="width:70%; height:auto;">
 
 <img src="resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_psf_spectrum.png" alt="Spectrum PSF" style="width:70%; height:auto;">
@@ -524,7 +526,9 @@ plot_images(
 The image workflow is useful for checking whether the target is centered, whether nearby sources contaminate the
 aperture, and whether a detector-specific issue is present.
 
-![Images](resources/objects/images/plots/T2 SIMP J013656.5+093347.3_images.png)
+Images plot:
+
+<img src="resources/objects/images/plots/T2 SIMP J013656.5+093347.3_images.png" alt="Images" style="width:100%; height:auto;">
 
 ---
 
