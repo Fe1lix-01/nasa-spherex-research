@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spexpi"
+version = "0.1.0"
+description = "SPHEREx spectrum extraction pipeline for aperture and PSF photometry of point sources"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Frank Kiwy" }
+]
+keywords = [
+    "SPHEREx",
+    "astronomy",
+    "spectrophotometry",
+    "brown dwarfs",
+    "aperture photometry",
+    "PSF photometry"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Astronomy"
+]
+dependencies = [
+    "numpy>=1.23",
+    "astropy>=5.3",
+    "matplotlib>=3.7",
+    "scipy>=1.10",
+    "photutils>=1.9",
+    "pyvo>=1.4",
+    "requests>=2.31",
+    "tqdm>=4.65",
+    "pandas>=2.0",
+    "fsspec>=2023.1",
+    "s3fs>=2023.1",
+    "reproject>=0.11"
+]
+
+[project.urls]
+Homepage = "https://github.com/fkiwy"
+Repository = "https://github.com/fkiwy/spexpi"
+Issues = "https://github.com/fkiwy/spexpi/issues"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+spexpi = ["*.fits"]
