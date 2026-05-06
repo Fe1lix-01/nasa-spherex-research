@@ -1021,7 +1021,9 @@ Create a compact object name from coordinates.
 | `plot_flux_lambda`      |            `True` | Plot as `F_lambda` rather than stored Jy. |
 | `plot_spectrum`         |            `True` | Save diagnostic plot.                     |
 | `plot_format`           |             `pdf` | Plot format.                              |
-| `plot_color`            |               `k` | Plot color.                               |
+| `plot_color`            |               `k` | Spectrum color.                           |
+| `plot_spline`           |            `True` | Plot a spline over spectrum data points.  |
+| `spline_density`        |            `1000` | Number of spline points.                  |
 
 ---
 
