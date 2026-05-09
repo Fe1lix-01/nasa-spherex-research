@@ -289,6 +289,12 @@ class PipelineConfig:
     spline_density: int = 1000
     """Number of spline points for the spectrum plot."""
 
+    plot_vertical_line: boolean = False
+    """If True, plot a vertical line at the wavelength specified using ``vertical_line_position``."""
+
+    vertical_line_position: float = 0.0
+    """Position of the vertical line in microns."""
+
 
 def validate_config(cfg: PipelineConfig) -> None:
     """
@@ -2705,6 +2711,8 @@ def plot_spectrum(spec: Table, object_name: str, cfg: PipelineConfig, photometry
         markerfacecolor=color,
         zorder=1
     )
+    if cfg.plot_vertical_line:
+        plt.axvline(cfg.vertical_line_position, color="tab:red", linewidth=1, linestyle="--")
     formatter = ScalarFormatter(useMathText=True)
     formatter.set_scientific(True)
     ax = plt.gca()
