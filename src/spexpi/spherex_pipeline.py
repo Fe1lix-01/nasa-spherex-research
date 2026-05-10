@@ -232,15 +232,6 @@ class PipelineConfig:
     reduce_oversampling: bool = True
     """Bin repeated SPHEREx measurements to reduce spectral oversampling."""
 
-    remove_outliers_before_spectral_binning: bool = True
-    """If True, reject isolated raw measurements inside spectral-channel bins before combining them."""
-
-    prebin_outlier_sigma: float = 3.0
-    """Sigma threshold for pre-binning MAD rejection inside spectral-channel bins."""
-
-    prebin_outlier_min_points: int = 3
-    """Minimum number of valid measurements required before pre-binning rejection is attempted in a channel."""
-
     use_spectral_channels_for_binning: bool = False
     """Use spectral_channels calibration files for bin centers/edges when available."""
 
@@ -339,12 +330,6 @@ def validate_config(cfg: PipelineConfig) -> None:
 
     if cfg.s3_cutout_size_px < cfg.s3_cutout_min_size_px:
         raise ValueError("cfg.s3_cutout_size_px must be >= cfg.s3_cutout_min_size_px.")
-
-    if cfg.prebin_outlier_min_points < 1:
-        raise ValueError("cfg.prebin_outlier_min_points must be at least 1.")
-
-    if cfg.prebin_outlier_sigma <= 0:
-        raise ValueError("cfg.prebin_outlier_sigma must be positive.")
 
 
 def ensure_output_directories(base_dir: str) -> None:
@@ -1663,10 +1648,12 @@ def aperture_flux_one_radius(flux_ujy, var_ujy2, flags, x, y, radius_pix, cfg: P
     annulus = CircularAnnulus((x, y), r_in=cfg.annulus_inner_scale * r, r_out=cfg.annulus_outer_scale * r)
 
     bad_mask = make_bad_pixel_mask(flags, cfg.bad_flag_bits)
-    bkg_mask = make_bad_pixel_mask(flags, cfg.bad_flag_bits + (21,))
+    if bad_mask is None:
+        bad_mask = np.zeros_like(flux_ujy, dtype=bool)
+    bad_mask |= ~np.isfinite(flux_ujy)
 
     sigclip = SigmaClip(sigma=cfg.sigma_clip_sigma, maxiters=cfg.sigma_clip_maxiters)
-    stats = ApertureStats(flux_ujy, annulus, mask=bkg_mask, sigma_clip=sigclip)
+    stats = ApertureStats(flux_ujy, annulus, mask=bad_mask, sigma_clip=sigclip)
 
     if cfg.bg_method == "mean":
         bkg_per_pix = stats.mean
@@ -2269,95 +2256,6 @@ def _weighted_average_bin(flux_values, err_values, center_value, det_value):
     )
 
 
-def reject_outliers_within_spectral_channels(wl, flux, err, det, channels_table, cfg: PipelineConfig):
-    """
-    Reject isolated raw measurements within the same spectral-channel bins
-    used later by ``reduce_oversampling_with_spectral_channels``.
-
-    This is a *pre-binning* cleanup step.  It is intentionally local: each
-    detector and spectral channel is treated independently, so broad spectral
-    structure across channels is preserved while single bad measurements inside
-    a channel do not bias the combined channel flux.
-
-    Bins with fewer than ``cfg.prebin_outlier_min_points`` finite measurements
-    are kept unchanged because there is not enough local information for a
-    meaningful MAD-based rejection.
-    """
-    wl = np.asarray(wl, dtype=float)
-    flux = np.asarray(flux, dtype=float)
-    err = np.asarray(err, dtype=float)
-    det = np.asarray(det)
-
-    keep = np.zeros(len(wl), dtype=bool)
-    sigma = float(getattr(cfg, "prebin_outlier_sigma", cfg.outlier_sigma))
-    min_points = int(getattr(cfg, "prebin_outlier_min_points", 3))
-
-    for det_num in np.unique(det):
-        det_mask = det == det_num
-        det_indices = np.nonzero(det_mask)[0]
-        if len(det_indices) == 0:
-            continue
-
-        edges, _centers = spectral_channel_edges_for_detector(channels_table, int(det_num))
-        if edges is None or len(edges) < 2:
-            # No spectral-channel definition for this detector: preserve all
-            # samples and let the legacy detector-wise rejection handle them.
-            keep[det_indices] = True
-            continue
-
-        assigned = np.zeros(len(det_indices), dtype=bool)
-        wl_d = wl[det_indices]
-        flux_d = flux[det_indices]
-        err_d = err[det_indices]
-
-        for i in range(len(edges) - 1):
-            lo = float(edges[i])
-            hi = float(edges[i + 1])
-            if i == len(edges) - 2:
-                in_bin = (wl_d >= lo) & (wl_d <= hi)
-            else:
-                in_bin = (wl_d >= lo) & (wl_d < hi)
-
-            if not np.any(in_bin):
-                continue
-
-            local_indices = np.nonzero(in_bin)[0]
-            assigned[local_indices] = True
-
-            finite = (
-                np.isfinite(wl_d[local_indices])
-                & np.isfinite(flux_d[local_indices])
-                & np.isfinite(err_d[local_indices])
-                & (err_d[local_indices] > 0)
-            )
-
-            if np.count_nonzero(finite) < min_points:
-                keep[det_indices[local_indices]] = True
-                continue
-
-            vals = flux_d[local_indices][finite]
-            med = np.nanmedian(vals)
-            mad = np.nanmedian(np.abs(vals - med))
-
-            # If all finite values are effectively identical, MAD rejection is
-            # not informative; keep the whole channel.
-            if not np.isfinite(mad) or mad == 0:
-                keep[det_indices[local_indices]] = True
-                continue
-
-            good_finite = np.abs(vals - med) < sigma * 1.4826 * mad
-            channel_keep = np.ones(len(local_indices), dtype=bool)
-            finite_positions = np.nonzero(finite)[0]
-            channel_keep[finite_positions] = good_finite
-            keep[det_indices[local_indices[channel_keep]]] = True
-
-        # Preserve samples that fall outside the spectral-channel edges; the
-        # legacy detector-wise rejection/fallback binning can still handle them.
-        keep[det_indices[~assigned]] = True
-
-    return wl[keep], flux[keep], err[keep], det[keep]
-
-
 def reduce_oversampling_with_spectral_channels(wl, flux, err, det, channels_table, cfg: PipelineConfig):
     """
     Reduce oversampling using the spectral_channels calibration.
@@ -2533,77 +2431,33 @@ def build_spectrum_table(measurements: list[dict], aperture_radius_pix: float, p
 
 
 def process_spectrum_table(spec: Table, cfg: PipelineConfig) -> Table:
-    """
-    Apply final filtering, optional outlier rejection, and optional spectral binning.
-
-    Processing order is deliberately conservative:
-    1. sanitize invalid values;
-    2. optionally reject raw outliers inside spectral-channel bins;
-    3. apply the legacy detector-wise MAD rejection exactly before binning;
-    4. reduce oversampling / spectral-channel bin.
-
-    Keeping the legacy detector-wise rejection before binning preserves the
-    behavior of earlier pipeline versions while adding the new spectral-channel
-    pre-binning cleanup as an extra first-pass filter.
-    """
+    """Apply final filtering, optional outlier rejection, and optional spectral binning."""
     if len(spec) == 0:
         return spec
-
     wl, flux, err, det = [np.asarray(spec[name]) for name in ("WAVELENGTH", "FLUX", "ERR", "DETECTOR")]
-
     if cfg.sanitize_flux:
-        # Keep negative fluxes, but remove non-finite values, zero placeholders,
-        # and invalid uncertainties.
+        # Keep negative fluxes, but remove non-finite values, zero placeholders, and invalid uncertainties.
         good = np.isfinite(wl) & np.isfinite(flux) & np.isfinite(err) & (err > 0) & (flux != 0)
         wl, flux, err, det = wl[good], flux[good], err[good], det[good]
-
-    # Load spectral-channel calibration once so the same edges can be used for
-    # both pre-binning rejection and spectral-channel binning.
-    channels_table = None
-    if cfg.reduce_oversampling and cfg.use_spectral_channels_for_binning:
-        channels_table = load_spectral_channels_calibration(cfg)
-
-    # New pre-binning rejection: remove isolated raw measurements inside the
-    # same spectral-channel bins that will later be combined.  This happens
-    # before the legacy detector-wise rejection below.
-    if (
-        cfg.remove_outliers
-        and cfg.remove_outliers_before_spectral_binning
-        and cfg.reduce_oversampling
-        and cfg.use_spectral_channels_for_binning
-        and channels_table is not None
-    ):
-        wl, flux, err, det = reject_outliers_within_spectral_channels(
-            wl, flux, err, det, channels_table, cfg
-        )
-
-    # Legacy detector-wise MAD rejection.  This intentionally remains in the
-    # same pre-binning position as the attached script, so points rejected by
-    # previous versions continue to be rejected.
     if cfg.remove_outliers:
-        wl, flux, err, det = remove_outliers_per_detector(
-            wl, flux, err, det,
-            cfg.outlier_detectors,
-            cfg.outlier_nbr_of_bins,
-            cfg.outlier_sigma,
-        )
-
+        wl, flux, err, det = remove_outliers_per_detector(wl, flux, err, det, cfg.outlier_detectors, cfg.outlier_nbr_of_bins, cfg.outlier_sigma)
     if cfg.reduce_oversampling:
-        if cfg.use_spectral_channels_for_binning and channels_table is not None:
-            wl2, flux2, err2, det2 = reduce_oversampling_with_spectral_channels(
-                wl, flux, err, det, channels_table, cfg
-            )
-            if len(wl2) > 0:
-                wl, flux, err, det = wl2, flux2, err2, det2
+        if cfg.use_spectral_channels_for_binning:
+            channels_table = load_spectral_channels_calibration(cfg)
+            if channels_table is not None:
+                wl2, flux2, err2, det2 = reduce_oversampling_with_spectral_channels(
+                    wl, flux, err, det, channels_table, cfg
+                )
+                if len(wl2) > 0:
+                    wl, flux, err, det = wl2, flux2, err2, det2
+                else:
+                    logging.warning("spectral_channels binning produced no points; falling back to hard-coded bins.")
+                    wl, flux, err, det = reduce_oversampling_per_detector(wl, flux, err, det)
             else:
-                logging.warning("spectral_channels binning produced no points; falling back to hard-coded bins.")
+                logging.warning("No spectral_channels calibration loaded; falling back to hard-coded bins.")
                 wl, flux, err, det = reduce_oversampling_per_detector(wl, flux, err, det)
-        elif cfg.use_spectral_channels_for_binning:
-            logging.warning("No spectral_channels calibration loaded; falling back to hard-coded bins.")
-            wl, flux, err, det = reduce_oversampling_per_detector(wl, flux, err, det)
         else:
             wl, flux, err, det = reduce_oversampling_per_detector(wl, flux, err, det)
-
     order = np.argsort(wl)
     return Table([wl[order], flux[order], err[order], det[order]], names=("WAVELENGTH", "FLUX", "ERR", "DETECTOR"))
 
