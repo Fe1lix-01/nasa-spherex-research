@@ -245,7 +245,7 @@ class PipelineConfig:
     """Use spectral_channels calibration files for bin centers/edges when available."""
 
     spectral_channels_bin_by: str = "integrate"
-    """Binning mode for spectral_channels: 'integrate', 'edges', 'nearest', or 'auto'."""
+    """Binning mode for spectral_channels: 'integrate', 'edges', or 'nearest'."""
 
     spectral_channels_min_points_per_bin: int = 1
     """Minimum number of measurements required in a spectral-channel bin."""
@@ -278,7 +278,7 @@ class PipelineConfig:
     """If True, write CSV/JSONL processing manifests for cutouts and measurements."""
 
     manifest_format: str = "both"
-    """Manifest output format: 'csv', 'jsonl', 'both', or 'none'."""
+    """Manifest output format: 'csv', 'jsonl', or 'both'."""
 
     plot_flux_lambda: bool = True
     """If True, plot spectra as F_lambda; otherwise plot the stored F_nu flux density."""
@@ -1663,12 +1663,10 @@ def aperture_flux_one_radius(flux_ujy, var_ujy2, flags, x, y, radius_pix, cfg: P
     annulus = CircularAnnulus((x, y), r_in=cfg.annulus_inner_scale * r, r_out=cfg.annulus_outer_scale * r)
 
     bad_mask = make_bad_pixel_mask(flags, cfg.bad_flag_bits)
-    if bad_mask is None:
-        bad_mask = np.zeros_like(flux_ujy, dtype=bool)
-    bad_mask |= ~np.isfinite(flux_ujy)
+    bkg_mask = make_bad_pixel_mask(flags, cfg.bad_flag_bits + (21,))
 
     sigclip = SigmaClip(sigma=cfg.sigma_clip_sigma, maxiters=cfg.sigma_clip_maxiters)
-    stats = ApertureStats(flux_ujy, annulus, mask=bad_mask, sigma_clip=sigclip)
+    stats = ApertureStats(flux_ujy, annulus, mask=bkg_mask, sigma_clip=sigclip)
 
     if cfg.bg_method == "mean":
         bkg_per_pix = stats.mean
@@ -2374,8 +2372,6 @@ def reduce_oversampling_with_spectral_channels(wl, flux, err, det, channels_tabl
     fallback_wl, fallback_flux, fallback_err, fallback_det = [], [], [], []
 
     mode = str(cfg.spectral_channels_bin_by).lower()
-    if mode == "auto":
-        mode = "integrate"
 
     for det_num in np.unique(det):
         det_num_int = int(det_num)
