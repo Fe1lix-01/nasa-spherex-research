@@ -146,7 +146,7 @@ ra, dec = 24.2412498, 9.5630705
 pmra, pmdec = 1238.244, -16.156
 ref_epoch = 2016.0
 
-photometry_method = "both"  # "aperture" or "psf"
+photometry_method = "both"
 outlier_nbr_of_bins = 8
 
 cfg = PipelineConfig(
@@ -171,10 +171,10 @@ cfg = PipelineConfig(
     enable_psf_local_grid_search=True,
 
     # Search window around initial WCS position
-    psf_local_grid_half_range_pix=1.0,  # typical: 1.0–2.0 (larger = more robust but slower)
+    psf_local_grid_half_range_pix=1.0,  # typical: 0.5–2.0
 
     # Sampling step
-    psf_local_grid_step_pix=0.25,  # fine grid; use 0.5 if half_range >= 3.0
+    psf_local_grid_step_pix=0.25,  # fine grid; use 0.5 if half_range > 1.0
 
     # Optimization metric
     psf_local_grid_metric="snr",  # "snr" (robust) or "chi2" (more sensitive)
@@ -196,11 +196,9 @@ cfg = PipelineConfig(
     # ============================================================
     reduce_oversampling=True,  # bin repeated SPHEREx measurements to reduce spectral oversampling
 
-    remove_outliers_before_spectral_binning=True,  # remove outliers inside spectral-channel bins before combining them
     use_spectral_channels_for_binning=True,  # use QR2 calibration (preferred over hard-coded bands)
     spectral_channels_min_points_per_bin=1,
-    spectral_channels_bin_by="integrate",  # best choice for flux-conserving spectra
-    # alternatives: "edges", "nearest", "auto"
+    spectral_channels_bin_by="integrate",  # best choice for flux-conserving spectra, alternatives: "edges" or "nearest"
 
     spectral_channels_cache_dir="../resources/spherex_calibration_files/spherex_spectral_channels_cache",
     redownload_spectral_channels=False,
