@@ -451,14 +451,12 @@ create_comparison_plot(
 Supported comparison metrics include:
 
 - `reduced-chi2`
-- `chi2`
-- `cosine`
+- `mean-squared-error`
 
 Supported scaling modes include:
 
 - `least-squares`
-- `original`
-- `none`
+- `scale-shift`
 
 Comparison plot:
 

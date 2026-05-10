@@ -286,7 +286,7 @@ class SpectrumTemplateComparator:
     ) -> Tuple[np.ndarray, np.ndarray, float, float]:
         if scaling_mode == "least-squares":
             return self._weighted_linear_scale(ref_flux, ref_uncertainty, tpl_flux, tpl_uncertainty)
-        if scaling_mode == "original":
+        if scaling_mode == "scale-shift":
             return self._original_scale_shift(ref_flux, tpl_flux, tpl_uncertainty)
         raise ValueError(f"Unsupported scaling_mode: {scaling_mode}")
 
@@ -384,40 +384,7 @@ class SpectrumTemplateComparator:
             dof = max(np.count_nonzero(np.isfinite(ref_flux)) - 1, 1)
             return float(np.sum((ref_flux - tpl_flux) ** 2 / uncertainty ** 2) / dof)
 
-        if metric == "cosine-similarity":
-            return float(self.cosine_similarity(ref_flux, tpl_flux))
-
-        if metric == "mahalanobis-distance":
-            uncertainty = ref_uncertainty.copy()
-            if not np.isfinite(uncertainty).any():
-                fallback = np.nanstd(ref_flux)
-                if not np.isfinite(fallback) or fallback <= 0:
-                    fallback = 1.0
-                uncertainty[:] = fallback
-            positive = uncertainty > 0
-            if not np.any(positive):
-                uncertainty[:] = 1.0
-            else:
-                fallback = np.nanmedian(uncertainty[positive])
-                uncertainty[~positive] = fallback
-            ivar = 1.0 / (uncertainty ** 2)
-            diff = ref_flux - tpl_flux
-            return float(np.sqrt(np.sum((diff ** 2) * ivar)))
-
-        if metric == "euclidean-distance":
-            return float(np.sqrt(np.sum((ref_flux - tpl_flux) ** 2)))
-
-        if metric == "mean-absolute-error":
-            return float(np.nanmean(np.abs(ref_flux - tpl_flux)))
-
         if metric == "mean-squared-error":
             return float(np.nanmean((ref_flux - tpl_flux) ** 2))
 
         raise ValueError(f"Unsupported metric: {metric}")
-
-    def cosine_similarity(self, ref_flux: np.ndarray, tpl_flux: np.ndarray) -> float:
-        norm_ref = np.linalg.norm(ref_flux)
-        norm_tpl = np.linalg.norm(tpl_flux)
-        if norm_ref == 0 or norm_tpl == 0:
-            return 0.0
-        return float(np.dot(ref_flux, tpl_flux) / (norm_ref * norm_tpl))
