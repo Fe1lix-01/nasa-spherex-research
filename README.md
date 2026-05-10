@@ -924,106 +924,131 @@ Create a compact object name from coordinates.
 
 `PipelineConfig` contains many options. The most commonly edited options are shown below.
 
-### IRSA and parallel processing
+### IRSA query and parallel execution
 
-| Parameter            |                             Default | Description                     |
-|----------------------|------------------------------------:|---------------------------------|
-| `tap_url`            | `https://irsa.ipac.caltech.edu/TAP` | IRSA TAP service URL.           |
-| `cutout_size_arcsec` |                               `180` | HTTP cutout size in arcseconds. |
-| `max_workers`        |                                 `8` | Number of parallel workers.     |
-| `retries`            |                                 `3` | Download/open retry count.      |
-| `retry_delay_sec`    |                               `5.0` | Delay between retries.          |
+| Parameter            |                               Default | Description                                                         |
+|----------------------|--------------------------------------:|---------------------------------------------------------------------|
+| `tap_url`            | `"https://irsa.ipac.caltech.edu/TAP"` | IRSA TAP service URL used to discover SPHEREx image artifacts.      |
+| `cutout_size_arcsec` |                                 `180` | Angular size of the requested IRSA HTTP cutout, in arcseconds.      |
+| `max_workers`        |                                   `8` | Maximum number of worker threads used for download/open operations. |
+| `retries`            |                                   `3` | Number of attempts for transient download/open failures.            |
+| `retry_delay_sec`    |                                 `5.0` | Delay between retry attempts, in seconds.                           |
 
-### Proper motion
+### Optional astrometric propagation for high proper-motion targets
 
-| Parameter              | Default | Description                                         |
-|------------------------|--------:|-----------------------------------------------------|
-| `reference_epoch_yr`   |  `None` | Coordinate reference epoch as decimal year.         |
-| `pmra_masyr`           |  `None` | Proper motion in RA, `mu_alpha*cos(delta)`, mas/yr. |
-| `pmdec_masyr`          |  `None` | Proper motion in Dec, mas/yr.                       |
-| `log_epoch_projection` | `False` | Print projected coordinates per cutout.             |
+| Parameter              | Default | Description                                                                               |
+|------------------------|--------:|-------------------------------------------------------------------------------------------|
+| `reference_epoch_yr`   |  `None` | Reference epoch of the input coordinates, as a decimal year; `None` disables propagation. |
+| `pmra_masyr`           |  `None` | Proper motion in right ascension, `mu_alpha*cos(delta)`, in mas/yr.                       |
+| `pmdec_masyr`          |  `None` | Proper motion in declination, `mu_delta`, in mas/yr.                                      |
+| `log_epoch_projection` | `False` | Print per-cutout propagated coordinates when proper-motion propagation is active.         |
 
-### Download and cache
+### Download and local cache settings
 
-| Parameter                    |             Default | Description                             |
-|------------------------------|--------------------:|-----------------------------------------|
-| `download_dir`               | `spherex_downloads` | Cached cutout directory.                |
-| `redownload_existing_files`  |             `False` | Replace existing cached FITS files.     |
-| `show_download_progress`     |              `True` | Show progress bars.                     |
-| `request_timeout_sec`        |             `120.0` | HTTP timeout.                           |
-| `download_backend`           |              `http` | `http`, `s3`, or `s3_cutout`.           |
-| `s3_bucket`                  | `nasa-irsa-spherex` | Public SPHEREx S3 bucket.               |
-| `s3_cutout_size_px`          |                `32` | S3 local cutout size in pixels.         |
-| `s3_cutout_fallback_to_http` |              `True` | Fall back to HTTP if S3 fails.          |
-| `query_irsa_for_cutouts`     |              `True` | Query IRSA; if false, use cached files. |
-| `cached_cutout_glob`         |            `*.fits` | Glob for cached local files.            |
+| Parameter                    |               Default | Description                                                                                                       |
+|------------------------------|----------------------:|-------------------------------------------------------------------------------------------------------------------|
+| `download_dir`               | `"spherex_downloads"` | Base directory containing one cached FITS subdirectory per object.                                                |
+| `redownload_existing_files`  |               `False` | If `True`, overwrite cached FITS cutouts instead of reusing them.                                                 |
+| `show_download_progress`     |                `True` | Show tqdm progress bars for download and file-opening operations.                                                 |
+| `request_timeout_sec`        |               `120.0` | HTTP request timeout, in seconds, for IRSA cutout downloads.                                                      |
+| `download_backend`           |              `"http"` | Cutout backend: `'http'` uses IRSA cutouts; `'s3'`/`'s3_cutout'` extract local cutouts from S3 parent FITS files. |
+| `s3_bucket`                  | `"nasa-irsa-spherex"` | Public S3 bucket containing SPHEREx image and calibration products.                                               |
+| `s3_cutout_size_px`          |                  `32` | Linear size, in detector pixels, of locally written S3 cutouts.                                                   |
+| `s3_cutout_min_size_px`      |                  `16` | Minimum allowed S3 cutout size, in pixels.                                                                        |
+| `s3_cutout_fallback_to_http` |                `True` | If `True`, fall back to IRSA HTTP cutouts when S3 cutout extraction fails.                                        |
+| `s3_cutout_update_alt_wcs`   |                `True` | Write `CRPIX1A`/`CRPIX2A` parent-detector offsets into S3-generated cutouts.                                      |
+| `query_irsa_for_cutouts`     |                `True` | If `True`, discover cutouts with IRSA TAP; if `False`, use cached files only.                                     |
+| `cached_cutout_glob`         |            `"*.fits"` | Glob pattern used when reading already cached local cutouts.                                                      |
 
-### Calibration
+### Solid-angle pixel map (SAPM) calibration
 
-| Parameter                           |                                                     Default | Description                          |
-|-------------------------------------|------------------------------------------------------------:|--------------------------------------|
-| `cache_sapm_files`                  |                                                      `True` | Cache SAPM calibration files.        |
-| `sapm_cache_dir`                    |              `spherex_calibration_files/spherex_sapm_cache` | SAPM cache directory.                |
-| `redownload_sapm_files`             |                                                     `False` | Refresh SAPM files.                  |
-| `sapm_collection`                   |                                      `cal-sapm-v2-2025-164` | SAPM collection.                     |
-| `use_spectral_channels_for_binning` |                                                     `False` | Use `spectral_channels` for binning. |
-| `spectral_channels_collection`      |                                       `cal-sch-v1-2026-106` | Spectral-channel collection.         |
-| `spectral_channels_cache_dir`       | `spherex_calibration_files/spherex_spectral_channels_cache` | Spectral-channel cache.              |
+| Parameter               |                                          Default | Description                                                                    |
+|-------------------------|-------------------------------------------------:|--------------------------------------------------------------------------------|
+| `cache_sapm_files`      |                                           `True` | Cache detector solid-angle pixel maps locally after first use.                 |
+| `sapm_cache_dir`        | `"spherex_calibration_files/spherex_sapm_cache"` | Base directory for cached solid-angle pixel maps, grouped by inferred release. |
+| `redownload_sapm_files` |                                          `False` | If `True`, refresh cached solid-angle pixel maps from S3.                      |
+| `sapm_collection`       |                         `"cal-sapm-v2-2025-164"` | Calibration collection name for the solid-angle pixel maps.                    |
 
-### Aperture photometry
+### Photometry mode
 
-| Parameter                      |           Default | Description                              |
-|--------------------------------|------------------:|------------------------------------------|
-| `aperture_radii_pix`           | `(1.0, 2.0, 3.0)` | Aperture radii measured.                 |
-| `selected_aperture_radius_pix` |             `2.0` | Radius used for final aperture spectrum. |
-| `annulus_inner_scale`          |             `2.0` | Inner annulus radius multiplier.         |
-| `annulus_outer_scale`          |             `3.0` | Outer annulus radius multiplier.         |
-| `bg_method`                    |          `median` | Background estimator.                    |
-| `sigma_clip_sigma`             |             `3.0` | Background sigma-clipping threshold.     |
-| `subtract_zodi`                |            `True` | Subtract ZODI extension if present.      |
+| Parameter           |      Default | Description                                                                                                                                  |
+|---------------------|-------------:|----------------------------------------------------------------------------------------------------------------------------------------------|
+| `photometry_method` | `"aperture"` | Photometry mode: `'aperture'`, `'psf'`, or `'both'`. If `'both'`, the pipeline writes independent aperture and PSF spectra/plots in one run. |
+
+### Aperture photometry and local background estimation
+
+| Parameter                      |           Default | Description                                                                  |
+|--------------------------------|------------------:|------------------------------------------------------------------------------|
+| `aperture_radii_pix`           | `(1.0, 2.0, 3.0)` | Aperture radii, in pixels, measured for each cutout.                         |
+| `selected_aperture_radius_pix` |             `2.0` | Aperture radius selected when building the final aperture spectrum.          |
+| `annulus_inner_scale`          |             `2.0` | Inner annulus radius as a multiple of the aperture radius.                   |
+| `annulus_outer_scale`          |             `3.0` | Outer annulus radius as a multiple of the aperture radius.                   |
+| `bg_method`                    |        `"median"` | Background estimator used in the annulus: `'mean'`, `'median'`, or `'mode'`. |
+| `sigma_clip_sigma`             |             `3.0` | Sigma threshold used when clipping background-annulus pixels.                |
+| `sigma_clip_maxiters`          |               `5` | Maximum number of sigma-clipping iterations for background estimation.       |
+| `subtract_zodi`                |            `True` | Subtract the ZODI extension before photometry when it is available.          |
 
 ### PSF photometry
 
-| Parameter                       |    Default | Description                         |
-|---------------------------------|-----------:|-------------------------------------|
-| `photometry_method`             | `aperture` | `aperture`, `psf`, or `both`.       |
-| `psf_kernel_radius_native`      |        `5` | PSF kernel half-size.               |
-| `psf_shift_sign`                |      `1.0` | Subpixel shift convention.          |
-| `psf_fit_background_gradient`   |    `False` | Include background gradient in fit. |
-| `psf_min_valid_pixels`          |        `6` | Minimum pixels for PSF fit.         |
-| `psf_max_reduced_chi2`          |     `None` | Optional PSF chi-square rejection.  |
-| `enable_psf_local_grid_search`  |     `True` | Enable centroid grid search.        |
-| `psf_local_grid_half_range_pix` |      `1.0` | Search half-range.                  |
-| `psf_local_grid_step_pix`       |      `0.5` | Search step size.                   |
-| `psf_local_grid_metric`         |      `snr` | `snr` or `chi2`.                    |
+| Parameter                           |              Default | Description                                                                          |
+|-------------------------------------|---------------------:|--------------------------------------------------------------------------------------|
+| `psf_kernel_radius_native`          |                  `5` | Half-size of the rebinned native-pixel PSF kernel.                                   |
+| `psf_shift_sign`                    |                `1.0` | Sign convention applied to the subpixel PSF shift.                                   |
+| `psf_fit_background_gradient`       |              `False` | If `True`, include linear x/y background-gradient terms in the PSF fit.              |
+| `psf_min_valid_pixels`              |                  `6` | Minimum number of unmasked pixels required for a valid PSF fit.                      |
+| `psf_max_reduced_chi2`              |               `None` | Optional maximum reduced chi-square above which PSF measurements are rejected.       |
+| `enable_psf_local_grid_search`      |               `True` | If `True`, refine the PSF centroid with a local grid search around the WCS position. |
+| `psf_local_grid_half_range_pix`     |                `1.0` | Half-width of the PSF centroid grid search, in pixels.                               |
+| `psf_local_grid_step_pix`           |                `0.5` | Step size of the PSF centroid grid search, in pixels.                                |
+| `psf_local_grid_metric`             |              `"snr"` | Metric used to choose the best PSF grid position: `'snr'` or `'chi2'`.               |
+| `psf_grid_search_enabled_detectors` | `(1, 2, 3, 4, 5, 6)` | Detector numbers for which PSF local grid search is enabled.                         |
 
-### Cleaning and binning
+### Pixel flags, flux sanitation, and outlier rejection
 
-| Parameter                  |         Default | Description                                         |
-|----------------------------|----------------:|-----------------------------------------------------|
-| `sanitize_flux`            |          `True` | Remove non-finite values and invalid uncertainties. |
-| `keep_negative_flux`       |          `True` | Keep negative faint-source flux points.             |
-| `remove_outliers`          |          `True` | Detector-wise outlier rejection.                    |
-| `outlier_detectors`        | `(1,2,3,4,5,6)` | Detectors to clean.                                 |
-| `outlier_nbr_of_bins`      |             `8` | Bins per detector for clipping.                     |
-| `outlier_sigma`            |           `3.0` | MAD clipping threshold.                             |
-| `reduce_oversampling`      |          `True` | Reduce repeated wavelength sampling.                |
-| `spectral_channels_bin_by` |     `integrate` | `integrate`, `edges`, `nearest`, or `auto`.         |
+| Parameter                  |                                                                        Default | Description                                                                                       |
+|----------------------------|-------------------------------------------------------------------------------:|---------------------------------------------------------------------------------------------------|
+| `bad_flag_bits`            | `(0, 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 17, 19, 22, 24, 26, 27, 28, 29)` | SPHEREx `FLAGS` bits treated as fatal and excluded from photometry.                               |
+| `aperture_flag_count_bits` | `(0, 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 17, 19, 22, 24, 26, 27, 28, 29)` | `FLAGS` bits counted inside apertures for diagnostics.                                            |
+| `sanitize_flux`            |                                                                         `True` | Remove non-finite flux/error values, zero placeholders, and invalid uncertainties before binning. |
+| `keep_negative_flux`       |                                                                         `True` | Keep negative background-subtracted fluxes; recommended for unbiased faint-source spectra.        |
+| `remove_outliers`          |                                                                        `False` | Apply detector-wise wavelength-bin outlier rejection before final binning.                        |
+| `outlier_detectors`        |                                                           `(1, 2, 3, 4, 5, 6)` | Detector numbers on which outlier rejection is applied.                                           |
+| `outlier_nbr_of_bins`      |                                                                            `8` | Number of wavelength bins per detector used for local outlier statistics.                         |
+| `outlier_sigma`            |                                                                          `3.0` | Sigma threshold for MAD-based outlier rejection.                                                  |
 
-### Outputs
+### Spectral oversampling reduction
 
-| Parameter               |           Default | Description                               |
-|-------------------------|------------------:|-------------------------------------------|
-| `output_dir`            | `spherex_spectra` | Output root.                              |
-| `save_raw_measurements` |           `False` | Save measurement FITS table.              |
-| `save_manifest`         |           `False` | Save CSV/JSONL manifests.                 |
-| `manifest_format`       |            `both` | `csv`, `jsonl`, `both`, or `none`.        |
-| `plot_flux_lambda`      |            `True` | Plot as `F_lambda` rather than stored Jy. |
-| `plot_spectrum`         |            `True` | Save diagnostic plot.                     |
-| `plot_format`           |             `pdf` | Plot format.                              |
-| `plot_color`            |               `k` | Spectrum color.                           |
-| `plot_spline`           |            `True` | Plot a spline over spectrum data points.  |
-| `spline_density`        |            `1000` | Number of spline points.                  |
+| Parameter                                 |                                                             Default | Description                                                                                           |
+|-------------------------------------------|--------------------------------------------------------------------:|-------------------------------------------------------------------------------------------------------|
+| `reduce_oversampling`                     |                                                              `True` | Bin repeated SPHEREx measurements to reduce spectral oversampling.                                    |
+| `remove_outliers_before_spectral_binning` |                                                              `True` | If `True`, reject isolated raw measurements inside spectral-channel bins before combining them.       |
+| `prebin_outlier_sigma`                    |                                                               `3.0` | Sigma threshold for pre-binning MAD rejection inside spectral-channel bins.                           |
+| `prebin_outlier_min_points`               |                                                                 `3` | Minimum number of valid measurements required before pre-binning rejection is attempted in a channel. |
+| `use_spectral_channels_for_binning`       |                                                             `False` | Use `spectral_channels` calibration files for bin centers/edges when available.                       |
+| `spectral_channels_bin_by`                |                                                       `"integrate"` | Binning mode for `spectral_channels`: `'integrate'`, `'edges'`, or `'nearest'`.                       |
+| `spectral_channels_min_points_per_bin`    |                                                                 `1` | Minimum number of measurements required in a spectral-channel bin.                                    |
+| `spectral_channels_integrate_errors`      |                                                      `"quadrature"` | Uncertainty propagation for integrated bins: `'quadrature'` or `'weighted'`.                          |
+| `spectral_channels_collection`            |                                             `"cal-sch-v1-2026-106"` | Optional `spectral_channels` calibration collection name used to build default S3 paths.              |
+| `spectral_channels_s3_template`           |                                                              `None` | Optional S3 template for `spectral_channels`; may include `{data_release}` and `{collection}`.        |
+| `spectral_channels_cache_dir`             | `"spherex_calibration_files/`<br>`spherex_spectral_channels_cache"` | Base directory for cached `spectral_channels` calibration files.                                      |
+| `redownload_spectral_channels`            |                                                             `False` | If `True`, refresh cached `spectral_channels` calibration files from S3.                              |
+
+### Output products and plotting
+
+| Parameter                |             Default | Description                                                                                 |
+|--------------------------|--------------------:|---------------------------------------------------------------------------------------------|
+| `output_dir`             | `"spherex_spectra"` | Base output directory for spectra, plots, and optional manifests.                           |
+| `save_raw_measurements`  |             `False` | If `True`, write the per-cutout measurement table to FITS.                                  |
+| `save_manifest`          |             `False` | If `True`, write CSV/JSONL processing manifests for cutouts and measurements.               |
+| `manifest_format`        |            `"both"` | Manifest output format: `'csv'`, `'jsonl'`, or `'both'`.                                    |
+| `plot_flux_lambda`       |              `True` | If `True`, plot spectra as `F_lambda`; otherwise plot the stored `F_nu` flux density.       |
+| `plot_spectrum`          |              `True` | If `True`, create a diagnostic spectrum plot.                                               |
+| `plot_format`            |             `"pdf"` | File extension/format for saved diagnostic plots.                                           |
+| `plot_color`             |               `"k"` | Matplotlib color for the final diagnostic spectrum plot.                                    |
+| `plot_spline`            |              `True` | If `True`, plot a spline over the spectrum data points.                                     |
+| `spline_density`         |              `1000` | Number of spline points for the spectrum plot.                                              |
+| `plot_vertical_line`     |             `False` | If `True`, plot a vertical line at the wavelength specified using `vertical_line_position`. |
+| `vertical_line_position` |               `0.0` | Position of the vertical line in microns.                                                   |
 
 ---
 
@@ -1096,4 +1121,3 @@ Check:
 This package uses SPHEREx mission data products and calibration files distributed through IRSA and the public SPHEREx
 archive. It also relies on the Python scientific ecosystem, including Astropy, NumPy, SciPy, Matplotlib, Photutils,
 PyVO, and related packages.
-
