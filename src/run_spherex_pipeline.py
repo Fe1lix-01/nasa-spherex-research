@@ -185,17 +185,18 @@ cfg = PipelineConfig(
     # ============================================================
     # 3. OUTLIER REJECTION & SPECTRAL CLEANING
     # ============================================================
-    remove_outliers=True,  # sigma-clipping per detector
+    remove_outliers=True,  # apply detector-wise wavelength-bin outlier rejection before final binning
     outlier_detectors=(1, 2, 3, 4, 5, 6),  # detectors to clean
-    outlier_nbr_of_bins=outlier_nbr_of_bins,  # spectral bins for local statistics
+    outlier_nbr_of_bins=outlier_nbr_of_bins,  # number of wavelength bins per detector
 
     keep_negative_flux=True,  # set True if you want to keep faint/noisy flux points
 
     # ============================================================
     # 4. SPECTRAL BINNING / OVERSAMPLING CONTROL
     # ============================================================
-    reduce_oversampling=True,  # enforce detector resolution (recommended)
+    reduce_oversampling=True,  # bin repeated SPHEREx measurements to reduce spectral oversampling
 
+    remove_outliers_before_spectral_binning=True,  # remove outliers inside spectral-channel bins before combining them
     use_spectral_channels_for_binning=True,  # use QR2 calibration (preferred over hard-coded bands)
     spectral_channels_min_points_per_bin=1,
     spectral_channels_bin_by="integrate",  # best choice for flux-conserving spectra
@@ -240,6 +241,16 @@ cfg = PipelineConfig(
     reference_epoch_yr=ref_epoch,
     pmra_masyr=pmra,
     pmdec_masyr=pmdec,
+
+    # ============================================================
+    # 9. PLOTTING OPTIONS
+    # ============================================================
+    plot_spline=True,
+    spline_density=1000,
+    plot_color="k",
+    plot_format="pdf",
+    plot_flux_lambda=False,
+
 )
 
 run_spherex_pipeline(ra, dec, object_name=object_name, cfg=cfg)
