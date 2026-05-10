@@ -205,7 +205,7 @@ class PipelineConfig:
     bad_flag_bits: tuple[int, ...] = (0, 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 17, 19, 22, 24, 26, 27, 28, 29)
     """SPHEREx FLAGS bits treated as fatal and excluded from photometry."""
 
-    aperture_flag_count_bits: tuple[int, ...] = (0, 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 17, 19, 21)
+    aperture_flag_count_bits: tuple[int, ...] = (0, 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 17, 19, 22, 24, 26, 27, 28, 29)
     """FLAGS bits counted inside apertures for diagnostics."""
 
     sanitize_flux: bool = True
@@ -2863,7 +2863,7 @@ def plot_spectrum(spec: Table, object_name: str, cfg: PipelineConfig, photometry
     ax.yaxis.set_major_formatter(formatter)
     plt.xlabel("Wavelength ($\\mu$m)")
     plt.ylabel(f"Flux ({fl.unit.to_string('latex_inline')})")
-    plt.title(f"SPHEREx {method} spectrum of {object_name}")
+    plt.title(f"SPHEREx {method if method == 'aperture' else method.upper()} spectrum of {object_name}")
     plt.grid(color="silver", linestyle="-", linewidth=0.5, alpha=0.5)
     out = Path(cfg.output_dir, "plots", f"{object_name}_{method}_spectrum.{cfg.plot_format}")
     plt.savefig(out, dpi=300, bbox_inches="tight", format=cfg.plot_format)
