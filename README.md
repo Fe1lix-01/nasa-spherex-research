@@ -1016,20 +1016,17 @@ Create a compact object name from coordinates.
 
 ### Spectral oversampling reduction
 
-| Parameter                                 |                                                             Default | Description                                                                                           |
-|-------------------------------------------|--------------------------------------------------------------------:|-------------------------------------------------------------------------------------------------------|
-| `reduce_oversampling`                     |                                                              `True` | Bin repeated SPHEREx measurements to reduce spectral oversampling.                                    |
-| `remove_outliers_before_spectral_binning` |                                                              `True` | If `True`, reject isolated raw measurements inside spectral-channel bins before combining them.       |
-| `prebin_outlier_sigma`                    |                                                               `3.0` | Sigma threshold for pre-binning MAD rejection inside spectral-channel bins.                           |
-| `prebin_outlier_min_points`               |                                                                 `3` | Minimum number of valid measurements required before pre-binning rejection is attempted in a channel. |
-| `use_spectral_channels_for_binning`       |                                                             `False` | Use `spectral_channels` calibration files for bin centers/edges when available.                       |
-| `spectral_channels_bin_by`                |                                                       `"integrate"` | Binning mode for `spectral_channels`: `'integrate'`, `'edges'`, or `'nearest'`.                       |
-| `spectral_channels_min_points_per_bin`    |                                                                 `1` | Minimum number of measurements required in a spectral-channel bin.                                    |
-| `spectral_channels_integrate_errors`      |                                                      `"quadrature"` | Uncertainty propagation for integrated bins: `'quadrature'` or `'weighted'`.                          |
-| `spectral_channels_collection`            |                                             `"cal-sch-v1-2026-106"` | Optional `spectral_channels` calibration collection name used to build default S3 paths.              |
-| `spectral_channels_s3_template`           |                                                              `None` | Optional S3 template for `spectral_channels`; may include `{data_release}` and `{collection}`.        |
-| `spectral_channels_cache_dir`             | `"spherex_calibration_files/`<br>`spherex_spectral_channels_cache"` | Base directory for cached `spectral_channels` calibration files.                                      |
-| `redownload_spectral_channels`            |                                                             `False` | If `True`, refresh cached `spectral_channels` calibration files from S3.                              |
+| Parameter                              |                                                             Default | Description                                                                                    |
+|----------------------------------------|--------------------------------------------------------------------:|------------------------------------------------------------------------------------------------|
+| `reduce_oversampling`                  |                                                              `True` | Bin repeated SPHEREx measurements to reduce spectral oversampling.                             |
+| `use_spectral_channels_for_binning`    |                                                             `False` | Use `spectral_channels` calibration files for bin centers/edges when available.                |
+| `spectral_channels_bin_by`             |                                                       `"integrate"` | Binning mode for `spectral_channels`: `'integrate'`, `'edges'`, or `'nearest'`.                |
+| `spectral_channels_min_points_per_bin` |                                                                 `1` | Minimum number of measurements required in a spectral-channel bin.                             |
+| `spectral_channels_integrate_errors`   |                                                      `"quadrature"` | Uncertainty propagation for integrated bins: `'quadrature'` or `'weighted'`.                   |
+| `spectral_channels_collection`         |                                             `"cal-sch-v1-2026-106"` | Optional `spectral_channels` calibration collection name used to build default S3 paths.       |
+| `spectral_channels_s3_template`        |                                                              `None` | Optional S3 template for `spectral_channels`; may include `{data_release}` and `{collection}`. |
+| `spectral_channels_cache_dir`          | `"spherex_calibration_files/`<br>`spherex_spectral_channels_cache"` | Base directory for cached `spectral_channels` calibration files.                               |
+| `redownload_spectral_channels`         |                                                             `False` | If `True`, refresh cached `spectral_channels` calibration files from S3.                       |
 
 ### Output products and plotting
 
