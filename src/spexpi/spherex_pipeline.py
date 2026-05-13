@@ -202,10 +202,10 @@ class PipelineConfig:
     # ------------------------------------------------------------------
     # Pixel flags, flux sanitation, and outlier rejection
     # ------------------------------------------------------------------
-    bad_flag_bits: tuple[int, ...] = (0, 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 17, 19, 22, 24, 26, 27, 28, 29)
+    bad_flag_bits: tuple[int, ...] = (0, 1, 2, 4, 6, 7, 9, 10, 11, 14, 15, 17, 19, 22, 24, 26, 27, 28, 29)
     """SPHEREx FLAGS bits treated as fatal and excluded from photometry."""
 
-    aperture_flag_count_bits: tuple[int, ...] = (0, 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 17, 19, 22, 24, 26, 27, 28, 29)
+    aperture_flag_count_bits: tuple[int, ...] = (0, 1, 2, 4, 6, 7, 9, 10, 11, 14, 15, 17, 19, 22, 24, 26, 27, 28, 29)
     """FLAGS bits counted inside apertures for diagnostics."""
 
     sanitize_flux: bool = True
