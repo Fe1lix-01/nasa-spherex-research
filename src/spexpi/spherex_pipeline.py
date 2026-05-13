@@ -1287,12 +1287,16 @@ def convert_variance_to_ujy2(var_data, image_header, sapm_data, sapm_header):
     return np.asarray(var_data, dtype=float) * scale ** 2
 
 
-def make_bad_pixel_mask(flags, bad_flag_bits: Iterable[int]):
-    """Return a boolean mask for pixels carrying any configured fatal flag bit."""
-    if flags is None:
-        return None
-    mask_value = sum(1 << int(bit) for bit in bad_flag_bits)
-    return (np.asarray(flags) & mask_value) != 0
+def make_bad_pixel_mask(flags, flux, bad_flag_bits: Iterable[int]):
+    """Return a boolean mask for pixels carrying any configured fatal flag bit or non-finite flux."""
+    bad_mask = np.zeros_like(flux, dtype=bool)
+
+    if flags is not None:
+        mask_value = sum(1 << int(bit) for bit in bad_flag_bits)
+        bad_mask |= (np.asarray(flags) & mask_value) != 0
+
+    bad_mask |= ~np.isfinite(flux)
+    return bad_mask
 
 
 def count_bad_aperture_flags(flags, x, y, radius_pix, flag_bits):
@@ -1628,7 +1632,8 @@ def psf_flux_fit_with_local_grid_search(hdul_like, flux_ujy, var_ujy2, flags, x,
     return flux_best, err_best, info_best
 
 
-def aperture_flux_one_radius(flux_ujy, var_ujy2, flags, x, y, radius_pix, cfg: PipelineConfig):
+def aperture_flux_one_radius(flux_ujy, var_ujy2, flags, x, y, radius_pix,
+                             cfg: PipelineConfig, remove_known_sources=True):
     """
     Measure background-subtracted circular-aperture flux for one cutout.
 
@@ -1647,13 +1652,15 @@ def aperture_flux_one_radius(flux_ujy, var_ujy2, flags, x, y, radius_pix, cfg: P
     aperture = CircularAperture((x, y), r=r)
     annulus = CircularAnnulus((x, y), r_in=cfg.annulus_inner_scale * r, r_out=cfg.annulus_outer_scale * r)
 
-    bad_mask = make_bad_pixel_mask(flags, cfg.bad_flag_bits)
-    if bad_mask is None:
-        bad_mask = np.zeros_like(flux_ujy, dtype=bool)
-    bad_mask |= ~np.isfinite(flux_ujy)
+    bad_mask = make_bad_pixel_mask(flags, flux_ujy, cfg.bad_flag_bits)
+
+    if remove_known_sources:
+        bkg_mask = make_bad_pixel_mask(flags, flux_ujy, cfg.bad_flag_bits + (21,))
+    else:
+        bkg_mask = bad_mask
 
     sigclip = SigmaClip(sigma=cfg.sigma_clip_sigma, maxiters=cfg.sigma_clip_maxiters)
-    stats = ApertureStats(flux_ujy, annulus, mask=bad_mask, sigma_clip=sigclip)
+    stats = ApertureStats(flux_ujy, annulus, mask=bkg_mask, sigma_clip=sigclip)
 
     if cfg.bg_method == "mean":
         bkg_per_pix = stats.mean
@@ -1665,6 +1672,9 @@ def aperture_flux_one_radius(flux_ujy, var_ujy2, flags, x, y, radius_pix, cfg: P
         raise ValueError(f"Unsupported background method: {cfg.bg_method}")
 
     if bkg_per_pix is None or not np.isfinite(bkg_per_pix):
+        if remove_known_sources:
+            return aperture_flux_one_radius(flux_ujy, var_ujy2, flags, x, y, radius_pix, cfg,
+                                            remove_known_sources=False)
         return np.nan, np.nan, np.nan, count_bad_aperture_flags(flags, x, y, r, cfg.aperture_flag_count_bits)
 
     ap_weight = aperture.to_mask(method="exact").to_image(flux_ujy.shape)
