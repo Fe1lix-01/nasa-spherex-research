@@ -10,7 +10,7 @@ import time
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Mapping
 
 import astropy.units as u
 import matplotlib.pyplot as plt
@@ -25,6 +25,7 @@ from astropy.time import Time
 from astropy.units import Unit
 from astropy.wcs import WCS
 from matplotlib.colors import to_rgba
+from matplotlib.lines import Line2D
 from matplotlib.ticker import ScalarFormatter
 from photutils.aperture import CircularAnnulus, CircularAperture, ApertureStats, aperture_photometry
 from scipy.interpolate import PchipInterpolator
@@ -140,7 +141,16 @@ class PipelineConfig:
     """Aperture radii, in pixels, measured for each cutout."""
 
     selected_aperture_radius_pix: float = 2.0
-    """Aperture radius selected when building the final aperture spectrum."""
+    """Fallback aperture radius selected when building the final aperture spectrum."""
+
+    selected_aperture_radius_by_detector: Mapping[int, float] | None = None
+    """Optional detector-specific selected aperture radii, in pixels.
+
+    Example: ``{1: 1.0, 2: 1.0, 3: 2.0, 4: 2.0, 5: 3.0, 6: 3.0}``.
+    Detectors omitted from the mapping fall back to ``selected_aperture_radius_pix``.
+    Detector-specific selected radii are measured automatically even when they
+    are not listed in ``aperture_radii_pix``.
+    """
 
     annulus_inner_scale: float = 2.0
     """Inner annulus radius as a multiple of the aperture radius."""
@@ -262,6 +272,9 @@ class PipelineConfig:
     output_dir: str = "spherex_spectra"
     """Base output directory for spectra, plots, and optional manifests."""
 
+    clip_flux_at_wavelength: float | None = None
+    """Clip flux at wavelength (in microns)."""
+
     save_raw_measurements: bool = False
     """If True, write the per-cutout measurement table to FITS."""
 
@@ -284,10 +297,40 @@ class PipelineConfig:
     """Matplotlib color for the final diagnostic spectrum plot."""
 
     plot_spline: bool = True
-    """If True, plot a spline over the spectrum data points."""
+    """If True, plot a smooth guide line over the spectrum plot."""
+
+    spline_mode: str = "binned_median"
+    """Spline mode for diagnostic plots: 'binned_median' for a broad-shape guide, or 'interpolate' to connect all points."""
+
+    spline_n_bins: int = 35
+    """Number of wavelength bins used by spline_mode='binned_median'. Lower values produce a smoother broad-shape guide."""
+
+    spline_min_points_per_bin: int = 2
+    """Minimum number of valid points required in a wavelength bin for the broad-shape spline."""
+
+    spline_sigma_clip: float | None = 3.0
+    """Optional sigma-clipping threshold inside each spline wavelength bin; None disables clipping."""
+
+    plot_unbinned_points_with_binned_spline: bool = False
+    """If True, plot unbinned points and overlay a dense PCHIP spline computed from the final binned spectrum."""
+
+    plot_binned_points_with_unbinned_overlay: bool = False
+    """If True together with plot_unbinned_points_with_binned_spline, also show the exact binned spectrum points used as spline anchors."""
 
     spline_density: int = 1000
-    """Number of spline points for the spectrum plot."""
+    """Number of dense wavelength samples used to draw the spectrum spline/guide line."""
+
+    plot_spectral_channel_overlay: bool = False
+    """If True, overlay spectral-channel bin ranges on the spectrum plot."""
+
+    plot_spectral_channel_overlay_detectors: tuple[int, ...] = (1, 2, 3, 4, 5, 6)
+    """Detector numbers whose spectral-channel bins are shown on the plot."""
+
+    plot_spectral_channel_overlay_wl_min: float | None = None
+    """Minimum wavelength, in microns, for the spectral-channel overlay."""
+
+    plot_spectral_channel_overlay_wl_max: float | None = None
+    """Maximum wavelength, in microns, for the spectral-channel overlay."""
 
     plot_vertical_line: boolean = False
     """If True, plot a vertical line at the wavelength specified using ``vertical_line_position``."""
@@ -328,8 +371,66 @@ def validate_config(cfg: PipelineConfig) -> None:
     if cfg.selected_aperture_radius_pix <= 0:
         raise ValueError("cfg.selected_aperture_radius_pix must be positive.")
 
+    if cfg.selected_aperture_radius_by_detector is not None:
+        for detector, radius in cfg.selected_aperture_radius_by_detector.items():
+            detector = int(detector)
+            if detector < 1 or detector > 6:
+                raise ValueError("cfg.selected_aperture_radius_by_detector keys must be detector numbers 1..6.")
+            if float(radius) <= 0:
+                raise ValueError("cfg.selected_aperture_radius_by_detector radii must be positive.")
+
     if cfg.s3_cutout_size_px < cfg.s3_cutout_min_size_px:
         raise ValueError("cfg.s3_cutout_size_px must be >= cfg.s3_cutout_min_size_px.")
+
+
+def get_selected_aperture_radius_pix(cfg: PipelineConfig, detector: int | None = None) -> float:
+    """Return the aperture radius selected for one detector, falling back to the global value."""
+    if detector is not None and cfg.selected_aperture_radius_by_detector is not None:
+        try:
+            radius = cfg.selected_aperture_radius_by_detector.get(int(detector))
+        except AttributeError:
+            radius = dict(cfg.selected_aperture_radius_by_detector).get(int(detector))
+        if radius is not None:
+            return float(radius)
+    return float(cfg.selected_aperture_radius_pix)
+
+
+def get_aperture_radii_for_detector(cfg: PipelineConfig, detector: int) -> tuple[float, ...]:
+    """Return all aperture radii to measure for one detector.
+
+    The configured ``aperture_radii_pix`` are preserved, and the detector-specific
+    selected radius is appended when needed so the final spectrum can always be
+    built from the requested radius.
+    """
+    radii: list[float] = []
+    for radius in tuple(cfg.aperture_radii_pix):
+        r = float(radius)
+        if not any(np.isclose(r, existing) for existing in radii):
+            radii.append(r)
+
+    selected = get_selected_aperture_radius_pix(cfg, detector)
+    if not any(np.isclose(selected, existing) for existing in radii):
+        radii.append(selected)
+
+    return tuple(radii)
+
+
+def aperture_radius_matches_detector_selection(row: dict, aperture_radius_pix) -> bool:
+    """Return True when an aperture measurement matches the requested selected radius."""
+    measured_radius = float(row["aperture_radius_pix"])
+    detector = int(row.get("detector", 0))
+
+    if aperture_radius_pix is None:
+        return True
+
+    if isinstance(aperture_radius_pix, Mapping):
+        target_radius = aperture_radius_pix.get(detector)
+        if target_radius is None:
+            return False
+    else:
+        target_radius = float(aperture_radius_pix)
+
+    return bool(np.isclose(measured_radius, float(target_radius)))
 
 
 def ensure_output_directories(base_dir: str) -> None:
@@ -1770,7 +1871,7 @@ def measure_cutout_photometry(row: dict, sapm_cache: dict, cfg: PipelineConfig) 
     method = str(cfg.photometry_method).lower()
 
     if method in ("aperture", "both"):
-        for radius in cfg.aperture_radii_pix:
+        for radius in get_aperture_radii_for_detector(cfg, detector):
             flux_uJy, err_uJy, area_pix, n_bad = aperture_flux_one_radius(flux_ujy, var_ujy2, flags, x, y, radius, cfg)
             measurements.append({
                 "wavelength": float(row["central_wavelength_um"]),
@@ -1834,7 +1935,13 @@ def measure_cutout_photometry(row: dict, sapm_cache: dict, cfg: PipelineConfig) 
             "photometry_method": "psf",
             "aperture_radius_pix": np.nan,
             "aperture_area_pix": np.nan,
-            "n_bad_aperture_pixels": count_bad_aperture_flags(flags, x, y, cfg.selected_aperture_radius_pix, cfg.aperture_flag_count_bits),
+            "n_bad_aperture_pixels": count_bad_aperture_flags(
+                flags,
+                x,
+                y,
+                get_selected_aperture_radius_pix(cfg, detector),
+                cfg.aperture_flag_count_bits,
+            ),
             "x": psf_info.get("psf_x_fit", x),
             "y": psf_info.get("psf_y_fit", y),
             "x_init": x,
@@ -2299,6 +2406,50 @@ def reduce_oversampling_with_spectral_channels(wl, flux, err, det, channels_tabl
 
         centers = np.asarray(centers, dtype=float)
 
+        """
+        # --------------------------------------------------------------
+        # DEBUG: inspect spectral-channel assignment around 1.6 micron
+        # --------------------------------------------------------------
+        debug_lo = 1.50
+        debug_hi = 1.65
+
+        debug_mask = (
+            np.isfinite(wl_d)
+            & np.isfinite(flux_d)
+            & np.isfinite(err_d)
+            & (wl_d >= debug_lo)
+            & (wl_d <= debug_hi)
+        )
+
+        if np.any(debug_mask):
+            print(f"\nDEBUG spectral-channel assignment for detector {det_num_int}")
+            print(f"Mode: {mode}")
+            print(" idx | wavelength | flux | err | assigned_channel | channel_center | edge_lo | edge_hi")
+
+            if mode == "nearest":
+                assigned = np.argmin(np.abs(wl_d[:, None] - centers[None, :]), axis=1)
+            else:
+                assigned = np.searchsorted(edges, wl_d, side="right") - 1
+                assigned = np.clip(assigned, 0, len(centers) - 1)
+
+            for local_idx in np.where(debug_mask)[0]:
+                ch = int(assigned[local_idx])
+                edge_lo = edges[ch] if ch < len(edges) else np.nan
+                edge_hi = edges[ch + 1] if ch + 1 < len(edges) else np.nan
+                cen = centers[ch] if ch < len(centers) else np.nan
+
+                print(
+                    f"{local_idx:4d} | "
+                    f"{wl_d[local_idx]:10.6f} | "
+                    f"{flux_d[local_idx]:12.5e} | "
+                    f"{err_d[local_idx]:12.5e} | "
+                    f"{ch:4d} | "
+                    f"{cen:10.6f} | "
+                    f"{edge_lo:10.6f} | "
+                    f"{edge_hi:10.6f}"
+                )
+        """
+
         if mode == "nearest":
             good = np.isfinite(wl_d) & np.isfinite(flux_d) & np.isfinite(err_d) & (err_d > 0)
             if not np.any(good):
@@ -2418,8 +2569,13 @@ def reduce_oversampling_per_detector(wl, flux, err, det):
     return tuple(map(np.array, out))
 
 
-def build_spectrum_table(measurements: list[dict], aperture_radius_pix: float, photometry_method: str = "aperture") -> Table:
-    """Select valid measurements and return a wavelength-sorted raw spectrum table."""
+def build_spectrum_table(measurements: list[dict], aperture_radius_pix: float | Mapping[int, float] | None, photometry_method: str = "aperture") -> Table:
+    """Select valid measurements and return a wavelength-sorted raw spectrum table.
+
+    For aperture spectra, ``aperture_radius_pix`` may be either a single radius
+    applied to every detector or a mapping from detector number to selected
+    radius.
+    """
     method = str(photometry_method).lower()
     if method == "psf":
         rows = [r for r in measurements if r.get("photometry_method") == "psf" and r["status"] == "ok"]
@@ -2427,7 +2583,7 @@ def build_spectrum_table(measurements: list[dict], aperture_radius_pix: float, p
         rows = [
             r for r in measurements
             if r.get("photometry_method", "aperture") == "aperture"
-               and np.isclose(float(r["aperture_radius_pix"]), float(aperture_radius_pix))
+               and aperture_radius_matches_detector_selection(r, aperture_radius_pix)
                and r["status"] == "ok"
         ]
     if not rows:
@@ -2440,18 +2596,29 @@ def build_spectrum_table(measurements: list[dict], aperture_radius_pix: float, p
     return Table([wl[order], flux[order], err[order], det[order]], names=("WAVELENGTH", "FLUX", "ERR", "DETECTOR"))
 
 
-def process_spectrum_table(spec: Table, cfg: PipelineConfig) -> Table:
-    """Apply final filtering, optional outlier rejection, and optional spectral binning."""
+def process_spectrum_table(spec: Table, cfg: PipelineConfig, reduce_oversampling_override: bool | None = None) -> Table:
+    """Apply final filtering, optional outlier rejection, and optional spectral binning.
+
+    ``reduce_oversampling_override=False`` is used by the diagnostic plot to
+    produce the true unbinned comparison layer after applying the same clipping,
+    sanitation, and outlier rejection as the final spectrum, but before spectral
+    binning.  This avoids plotting a hybrid product.
+    """
     if len(spec) == 0:
         return spec
     wl, flux, err, det = [np.asarray(spec[name]) for name in ("WAVELENGTH", "FLUX", "ERR", "DETECTOR")]
+    if cfg.clip_flux_at_wavelength is not None:
+        keep = wl >= float(cfg.clip_flux_at_wavelength)
+        wl, flux, err, det = wl[keep], flux[keep], err[keep], det[keep]
     if cfg.sanitize_flux:
         # Keep negative fluxes, but remove non-finite values, zero placeholders, and invalid uncertainties.
         good = np.isfinite(wl) & np.isfinite(flux) & np.isfinite(err) & (err > 0) & (flux != 0)
         wl, flux, err, det = wl[good], flux[good], err[good], det[good]
     if cfg.remove_outliers:
         wl, flux, err, det = remove_outliers_per_detector(wl, flux, err, det, cfg.outlier_detectors, cfg.outlier_nbr_of_bins, cfg.outlier_sigma)
-    if cfg.reduce_oversampling:
+
+    do_reduce_oversampling = cfg.reduce_oversampling if reduce_oversampling_override is None else bool(reduce_oversampling_override)
+    if do_reduce_oversampling:
         if cfg.use_spectral_channels_for_binning:
             channels_table = load_spectral_channels_calibration(cfg)
             if channels_table is not None:
@@ -2667,28 +2834,210 @@ def save_measurements_fits(measurements: list[dict], object_name: str, cfg: Pipe
     print(f"Saved raw measurements: {out}")
 
 
-def plot_spectrum(spec: Table, object_name: str, cfg: PipelineConfig, photometry_method: str | None = None):
+def make_broad_shape_spline_points(x, y, n_bins: int = 35, min_points_per_bin: int = 2, sigma_clip: float | None = 3.0):
+    """Return binned median anchor points for a broad-shape spectrum guide.
+
+    This deliberately does not interpolate every oversampled measurement.  The
+    spectrum is first compressed into wavelength bins, each bin is summarized by
+    a robust median flux, and the diagnostic guide line is drawn through those
+    anchors.  The result is a visual low-frequency spectral-shape guide while
+    the original data points remain unchanged.
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    good = np.isfinite(x) & np.isfinite(y)
+    x = x[good]
+    y = y[good]
+
+    if x.size < 3:
+        return np.array([], dtype=float), np.array([], dtype=float)
+
+    order = np.argsort(x)
+    x = x[order]
+    y = y[order]
+
+    n_bins = int(max(3, min(int(n_bins), x.size)))
+    min_points_per_bin = int(max(1, min_points_per_bin))
+    edges = np.linspace(float(np.nanmin(x)), float(np.nanmax(x)), n_bins + 1)
+
+    xb = []
+    yb = []
+    for i in range(n_bins):
+        if i == n_bins - 1:
+            in_bin = (x >= edges[i]) & (x <= edges[i + 1])
+        else:
+            in_bin = (x >= edges[i]) & (x < edges[i + 1])
+
+        yy = y[in_bin]
+        xx = x[in_bin]
+        valid = np.isfinite(xx) & np.isfinite(yy)
+        xx = xx[valid]
+        yy = yy[valid]
+
+        if yy.size < min_points_per_bin:
+            continue
+
+        if sigma_clip is not None and np.isfinite(float(sigma_clip)) and yy.size >= 4:
+            clip = SigmaClip(sigma=float(sigma_clip), maxiters=3)
+            clipped = clip(yy)
+            keep = ~np.asarray(clipped.mask, dtype=bool)
+            xx = xx[keep]
+            yy = yy[keep]
+            if yy.size < min_points_per_bin:
+                continue
+
+        xb.append(float(np.nanmedian(xx)))
+        yb.append(float(np.nanmedian(yy)))
+
+    xb = np.asarray(xb, dtype=float)
+    yb = np.asarray(yb, dtype=float)
+    good = np.isfinite(xb) & np.isfinite(yb)
+    xb = xb[good]
+    yb = yb[good]
+
+    # PCHIP requires strictly increasing x values.  Merge rare duplicate anchor
+    # wavelengths by taking the median y value at each unique x.
+    if xb.size:
+        unique_x = []
+        unique_y = []
+        for ux in np.unique(xb):
+            same = xb == ux
+            unique_x.append(float(ux))
+            unique_y.append(float(np.nanmedian(yb[same])))
+        xb = np.asarray(unique_x, dtype=float)
+        yb = np.asarray(unique_y, dtype=float)
+
+    return xb, yb
+
+
+def _spectrum_plot_arrays(spec: Table, cfg: PipelineConfig):
+    """Return wavelength, plotted flux, and plotted error arrays for diagnostic plotting."""
+    wl = np.asarray(spec["WAVELENGTH"], dtype=float) * u.um
+    flux = np.asarray(spec["FLUX"], dtype=float) * u.Jy
+    err = np.asarray(spec["ERR"], dtype=float) * u.Jy
+    if cfg.plot_flux_lambda:
+        fl = flux_to_flux_lambda(wl, flux)
+        er = flux_to_flux_lambda(wl, err)
+    else:
+        fl = flux
+        er = err
+
+    x = np.asarray(wl.value, dtype=float)
+    y = np.asarray(fl.value, dtype=float)
+    e = np.asarray(er.value, dtype=float)
+    good = np.isfinite(x) & np.isfinite(y) & np.isfinite(e) & (e > 0)
+    x, y, e = x[good], y[good], e[good]
+    if x.size:
+        order = np.argsort(x)
+        x, y, e = x[order], y[order], e[order]
+    return x, y, e, fl.unit
+
+
+def add_spectral_channel_overlay(ax, cfg, detectors=(1, 2, 3, 4, 5, 6),
+                                 wl_min=None, wl_max=None):
+    """
+    Overlay SPHEREx spectral-channel bins on an existing spectrum plot.
+    Uses the same spectral_channels calibration loader as the binning code.
+    """
+
+    if not cfg.use_spectral_channels_for_binning:
+        return
+
+    channels_table = load_spectral_channels_calibration(cfg)
+
+    if channels_table is None:
+        print("WARNING: no spectral_channels calibration table available for plot overlay.")
+        return
+
+    for det in detectors:
+        edges, centers = spectral_channel_edges_for_detector(channels_table, det)
+
+        if edges is None or centers is None or len(edges) < 2:
+            print(f"WARNING: no spectral-channel edges available for D{det}")
+            continue
+
+        for j in range(len(edges) - 1):
+            lo = float(edges[j])
+            hi = float(edges[j + 1])
+
+            if wl_min is not None and hi < wl_min:
+                continue
+            if wl_max is not None and lo > wl_max:
+                continue
+
+            ax.axvline(
+                lo,
+                color="tab:blue",
+                alpha=0.25,
+                linewidth=0.5,
+                zorder=0,
+            )
+
+        ax.axvline(
+            float(edges[-1]),
+            color="tab:blue",
+            alpha=0.25,
+            linewidth=0.5,
+            zorder=0,
+        )
+
+        """
+        ax.axvline(
+            float(edges[0]),
+            color="tab:red",
+            alpha=0.6,
+            linewidth=1.0,
+            linestyle="--",
+            zorder=1,
+        )
+        """
+
+        if det < 6:
+            ax.axvline(
+                float(edges[-1]),
+                color="tab:red",
+                alpha=0.6,
+                linewidth=1.0,
+                linestyle="--",
+                zorder=1,
+            )
+
+
+def plot_spectrum(
+    spec: Table,
+    object_name: str,
+    cfg: PipelineConfig,
+    photometry_method: str | None = None,
+    raw_spec: Table | None = None,
+):
     """Create one diagnostic spectrum plot in F_lambda or F_nu units.
 
-    The optional photometry_method label allows cfg.photometry_method ==
-    "both" to generate independent aperture and PSF plots instead of silently
-    overwriting or saving only one method.
+    By default, the plotted points and spline both come from ``spec``.  If
+    ``cfg.plot_unbinned_points_with_binned_spline`` is True and ``raw_spec`` is
+    supplied, the points come from the explicitly unbinned-but-filtered spectrum
+    while the dense PCHIP spline is computed only from the final binned spectrum
+    in ``spec``.  The optional binned-point overlay shows the exact spline
+    anchors, making it obvious that the line is not computed from the unbinned
+    cloud.
     """
     if len(spec) == 0:
         return
     ensure_output_directories(cfg.output_dir)
     method = str(photometry_method or cfg.photometry_method).lower().strip()
 
-    wl = np.asarray(spec["WAVELENGTH"]) * u.um
-    flux = np.asarray(spec["FLUX"]) * u.Jy
-    err = np.asarray(spec["ERR"]) * u.Jy
-    if cfg.plot_flux_lambda:
-        fl = flux_to_flux_lambda(wl, flux)
-        er = flux_to_flux_lambda(wl, err)
+    use_raw_points = bool(getattr(cfg, "plot_unbinned_points_with_binned_spline", False)) and raw_spec is not None and len(raw_spec) > 0
+
+    # The spline source remains the final/binned spectrum.  The point source can
+    # optionally be the unbinned spectrum for visual diagnostics.
+    x_line, y_line, e_line, flux_unit = _spectrum_plot_arrays(spec, cfg)
+    if use_raw_points:
+        x, y, e, _ = _spectrum_plot_arrays(raw_spec, cfg)
     else:
-        # Preserve the original F_nu units when the conversion is disabled.
-        fl = flux
-        er = err
+        x, y, e = x_line, y_line, e_line
+
+    if len(x) == 0:
+        return
+
     plt.figure(figsize=(12, 6))
     plt.rcParams.update(
         {
@@ -2701,11 +3050,35 @@ def plot_spectrum(spec: Table, object_name: str, cfg: PipelineConfig, photometry
         }
     )
     color = cfg.plot_color
-    order = np.argsort(wl.value)
-    x, y, e = wl.value[order], fl.value[order], er.value[order]
-    if len(x) >= 3 and cfg.plot_spline:
-        xd = np.linspace(x.min(), x.max(), cfg.spline_density)
-        plt.plot(xd, PchipInterpolator(x, y)(xd), lw=1, c=color, alpha=0.4, zorder=2)
+
+    if len(x_line) >= 3 and cfg.plot_spline:
+        if use_raw_points:
+            # Requested diagnostic mode: draw the original dense PCHIP spline
+            # through the final binned spectrum, over the unbinned points.
+            xd = np.linspace(float(np.nanmin(x_line)), float(np.nanmax(x_line)), int(cfg.spline_density))
+            plt.plot(xd, PchipInterpolator(x_line, y_line)(xd), lw=1, c=color, alpha=0.4, zorder=3, label="PCHIP through final binned spectrum")
+        else:
+            spline_mode = str(getattr(cfg, "spline_mode", "binned_median") or "binned_median").lower().strip()
+            if spline_mode in ("interpolate", "pchip", "connect_points"):
+                # Backward-compatible behavior: draw a PCHIP curve through every
+                # sorted measurement point.  This can be too wiggly for oversampled
+                # SPHEREx spectra, but remains available for diagnostics.
+                xd = np.linspace(x_line.min(), x_line.max(), cfg.spline_density)
+                plt.plot(xd, PchipInterpolator(x_line, y_line)(xd), lw=1, c=color, alpha=0.4, zorder=2, label="PCHIP spline")
+            else:
+                # Default behavior: draw a broad-shape guide through robust binned
+                # medians, not through every oversampled point.
+                xb, yb = make_broad_shape_spline_points(
+                    x_line,
+                    y_line,
+                    n_bins=getattr(cfg, "spline_n_bins", 35),
+                    min_points_per_bin=getattr(cfg, "spline_min_points_per_bin", 2),
+                    sigma_clip=getattr(cfg, "spline_sigma_clip", 3.0),
+                )
+                if len(xb) >= 3:
+                    xd = np.linspace(xb.min(), xb.max(), cfg.spline_density)
+                    plt.plot(xd, PchipInterpolator(xb, yb)(xd), lw=1, c=color, alpha=0.4, zorder=2, label="binned-median broad-shape spline")
+
     plt.errorbar(
         x,
         y,
@@ -2717,17 +3090,76 @@ def plot_spectrum(spec: Table, object_name: str, cfg: PipelineConfig, photometry
         elinewidth=0.8,
         markeredgewidth=0,
         markerfacecolor=color,
-        zorder=1
+        zorder=1,
+        label="unbinned filtered measurements" if use_raw_points else "spectrum points",
     )
+    if use_raw_points and bool(getattr(cfg, "plot_binned_points_with_unbinned_overlay", False)):
+        plt.errorbar(
+            x_line,
+            y_line,
+            yerr=e_line,
+            fmt="o",
+            ms=5,
+            color=color,
+            capsize=0,
+            elinewidth=0.8,
+            markeredgewidth=0.8,
+            markerfacecolor="white",
+            zorder=4,
+            label="final binned spectrum points",
+        )
+    ax = plt.gca()
+    if cfg.plot_spectral_channel_overlay:
+        add_spectral_channel_overlay(
+            ax,
+            cfg,
+            detectors=cfg.plot_spectral_channel_overlay_detectors,
+            wl_min=cfg.plot_spectral_channel_overlay_wl_min,
+            wl_max=cfg.plot_spectral_channel_overlay_wl_max,
+        )
+    if cfg.reduce_oversampling and (use_raw_points or bool(getattr(cfg, "plot_binned_points_with_unbinned_overlay", False))):
+        handles, _ = ax.get_legend_handles_labels()
+        if cfg.plot_spectral_channel_overlay:
+            handles.append(
+                Line2D(
+                    [0],
+                    [0],
+                    color="tab:blue",
+                    linestyle="-",
+                    linewidth=1.0,
+                    alpha=0.7,
+                    label="Spectral-channel bins",
+                )
+            )
+            handles.append(
+                Line2D(
+                    [0],
+                    [0],
+                    color="tab:red",
+                    linestyle="--",
+                    linewidth=1.0,
+                    alpha=0.7,
+                    label="Detector boundaries",
+                )
+            )
+        ax.legend(
+            frameon=True,
+            handles=handles,
+            facecolor="white",
+            framealpha=0.85,
+            fontsize=10,
+            fancybox=False,
+        )
     if cfg.plot_vertical_line:
         plt.axvline(cfg.vertical_line_position, color="tab:red", linewidth=1, linestyle="--")
     formatter = ScalarFormatter(useMathText=True)
     formatter.set_scientific(True)
-    ax = plt.gca()
     ax.yaxis.set_major_formatter(formatter)
     plt.xlabel("Wavelength ($\\mu$m)")
-    plt.ylabel(f"Flux ({fl.unit.to_string('latex_inline')})")
-    plt.title(f"SPHEREx {method if method == 'aperture' else method.upper()} spectrum of {object_name}")
+    plt.ylabel(f"Flux ({flux_unit.to_string('latex_inline')})")
+    # suffix = " — unbinned points, binned spline" if use_raw_points else ""
+    suffix = ""
+    plt.title(f"SPHEREx {method if method == 'aperture' else method.upper()} spectrum of {object_name}{suffix}")
     plt.grid(color="silver", linestyle="-", linewidth=0.5, alpha=0.5)
     out = Path(cfg.output_dir, "plots", f"{object_name}_{method}_spectrum.{cfg.plot_format}")
     plt.savefig(out, dpi=300, bbox_inches="tight", format=cfg.plot_format)
@@ -2805,11 +3237,19 @@ def run_spherex_pipeline(ra: float, dec: float, object_name: str | None = None, 
     final_specs: dict[str, Table] = {}
     for method in methods_to_write:
         print(f"Building {method} spectrum...")
+        selected_aperture = (
+            {det: get_selected_aperture_radius_pix(cfg, det) for det in range(1, 7)}
+            if method == "aperture"
+            else None
+        )
         raw_spec = build_spectrum_table(
             measurements,
-            cfg.selected_aperture_radius_pix,
+            selected_aperture,
             photometry_method=method,
         )
+        # This is the true unbinned comparison layer: same clipping/sanitation/outlier
+        # handling as the final spectrum, but explicitly before oversampling reduction.
+        unbinned_plot_spec = process_spectrum_table(raw_spec, cfg, reduce_oversampling_override=False)
         final_spec = process_spectrum_table(raw_spec, cfg)
         final_specs[method] = final_spec
         save_spectrum_fits(
@@ -2822,7 +3262,7 @@ def run_spherex_pipeline(ra: float, dec: float, object_name: str | None = None, 
             coord_stats=coord_stats,
         )
         if cfg.plot_spectrum:
-            plot_spectrum(final_spec, object_name, cfg, photometry_method=method)
+            plot_spectrum(final_spec, object_name, cfg, photometry_method=method, raw_spec=unbinned_plot_spec)
 
     measurements_table = Table(rows=measurements) if measurements else Table()
 
