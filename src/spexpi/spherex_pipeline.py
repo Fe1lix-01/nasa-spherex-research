@@ -3194,7 +3194,7 @@ def run_spherex_pipeline(ra: float, dec: float, object_name: str | None = None, 
         print(f"Found {len(prepared_rows)} cached cutout files in {get_object_download_dir(cfg, object_name)}")
         prepared_release = infer_unique_data_release(prepared_rows)
         if prepared_release not in ("unknown", "mixed"):
-            print(f"SPHEREx data release inferred from cached file paths: {prepared_release}")
+            print(f"SPHEREx data release inferred from cached file paths: {prepared_release.upper()}")
             set_runtime_data_release(cfg, prepared_release)
 
     print("Opening cached cutouts...")
@@ -3203,7 +3203,7 @@ def run_spherex_pipeline(ra: float, dec: float, object_name: str | None = None, 
     opened_release = infer_unique_data_release(good_cutouts)
     if opened_release not in ("unknown", "mixed"):
         set_runtime_data_release(cfg, opened_release)
-        print(f"SPHEREx data release used for calibration lookup: {opened_release}")
+        print(f"SPHEREx data release used for calibration lookup: {opened_release.upper()}")
     elif opened_release == "mixed":
         print("WARNING: mixed SPHEREx data releases detected; calibration lookup will use per-cutout releases where possible.")
     else:
