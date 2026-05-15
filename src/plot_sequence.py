@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
 from astropy.table import Table
-from matplotlib.colors import to_rgba
+from matplotlib.patches import Rectangle
 from scipy.interpolate import PchipInterpolator
 
 
@@ -120,19 +120,19 @@ def plot_curves(ax, wl, flux, err, color):
     interp = PchipInterpolator(wl, flux)
     flux_dense = interp(wl_dense)
 
-    ax.plot(wl_dense, flux_dense, lw=1.0, c=color, alpha=0.4, zorder=2)
+    ax.plot(wl_dense, flux_dense, lw=1.0, c=color, alpha=0.4, zorder=1)
     ax.errorbar(
         wl,
         flux,
         yerr=err,
         fmt="o",
-        ms=4,
-        color=to_rgba(color, alpha=0.2),
+        ms=5,
+        color=color,
         capsize=0,
         elinewidth=0.8,
-        markeredgewidth=0,
-        markerfacecolor=color,
-        zorder=1,
+        markeredgewidth=0.8,
+        markerfacecolor="white",
+        zorder=2,
         label="Flux"
     )
 
@@ -165,35 +165,122 @@ def add_standard_reference_box(ax, text, title=None):
     )
 
 
+def shade_absorption_features(
+    ax,
+    dwarf_type="T",
+    alpha=0.16,
+    zorder=0,
+    label_top=0.985,
+    label_step=0.035,
+):
+    dtype = dwarf_type.strip().lower()
+
+    l_features = [
+        (1.10, 1.20, r"H$_2$O", 0),
+        (1.30, 1.50, r"H$_2$O", 0.5),
+        (1.75, 2.00, r"H$_2$O", 0),
+        (1.80, 2.30, r"H$_2$-H$_2$", 0.5),
+        (2.30, 2.50, r"H$_2$O", 0),
+        (2.51, 3.20, r"H$_2$O", 0.5),
+        (3.00, 3.80, r"CH$_4$", 0),
+        # (4.00, 4.45, r"CO$_2$", 0),
+        (4.45, 5.00, r"CO", 0),
+    ]
+
+    t_features = [
+        (1.10, 1.23, r"H$_2$O+CH$_4$", 0),
+        (1.30, 1.51, r"H$_2$O", 0.5),
+        (1.60, 1.80, r"CH$_4$", 0),
+        (1.75, 2.05, r"H$_2$O", 0.5),
+        (2.15, 2.50, r"H$_2$O+CH$_4$", 0),
+        (2.51, 3.20, r"H$_2$O", 0.5),
+        (3.00, 3.80, r"CH$_4$", 0),
+        (4.20, 4.40, r"CO$_2$", 0),
+        (4.45, 5.00, r"CO", 0),
+    ]
+
+    if dtype == "l":
+        features = l_features
+    elif dtype == "t":
+        features = t_features
+    else:
+        raise ValueError("dwarf_type must be either 'L' or 'T'.")
+
+    feature_colors = {
+        r"H$_2$O": "tab:blue",
+        r"CH$_4$": "tab:orange",
+        r"H$_2$O+CH$_4$": "tab:cyan",
+        r"H$_2$-H$_2$": "tab:brown",
+        r"CO$_2$": "tab:red",
+        r"CO": "tab:green",
+    }
+
+    seen_labels = set()
+
+    for x0, x1, label, offset in features:
+        color = feature_colors[label]
+        legend_label = label if label not in seen_labels else None
+        seen_labels.add(label)
+
+        ax.axvspan(
+            x0,
+            x1,
+            color=color,
+            alpha=alpha,
+            zorder=zorder,
+            label=legend_label,
+        )
+
+        ax.text(
+            0.5 * (x0 + x1),
+            label_top - offset * label_step,
+            label,
+            transform=ax.get_xaxis_transform(),
+            ha="center",
+            va="top",
+            fontsize=14,
+            color=color,
+            zorder=zorder + 1,
+            bbox={
+                "facecolor": "white",
+                "edgecolor": "none",
+                "alpha": 0.75,
+                "pad": 1.0,
+            },
+        )
+
+    return ax
+
+
 warnings.simplefilter("ignore")
 
 flux_type = "F_nu"  # "F_lambda" or "F_nu"
 color_aperture = "k"
 color_psf = "tab:red"
-plot_bands = False
+plot_features = False
 offset_step = 0.9  # vertical spacing between spectra
 
-L_STANDARD_REFERENCES = """L0, 2MASP J0345432+254023, J. D. Kirkpatrick et al. (1999)
-L1, 2MASSW J1439284+192915, J. D. Kirkpatrick et al. (1999)
-L2, Kelu-1, J. D. Kirkpatrick et al. (1999)
-L3, 2MASSW J1506544+132106, J. E. Gizis et al. (2000)
-L4, 2MASS J21580457-1550098, J. D. Kirkpatrick et al. (2008)
-L5, SDSS J083506.16+195304.4, K. Chiu et al. (2006)
-L6, 2MASSI J1010148-040649, K. L. Cruz et al. (2003)
-L7, 2MASSW J2148162+400359, A. C. Schneider et al. (2014)
-L8, 2MASSW J1632291+190441, J. D. Kirkpatrick et al. (1999)
-L9, DENIS-P J0255-4700, J. D. Kirkpatrick et al. (2008)"""
+L_STANDARD_REFERENCES = """L0 : 2MASP J0345432+254023  –  J. D. Kirkpatrick et al. (1999)
+L1 : 2MASSW J1439284+192915 – J. D. Kirkpatrick et al. (1999)
+L2 : Kelu-1 – J. D. Kirkpatrick et al. (1999)
+L3 : 2MASSW J1506544+132106 – J. E. Gizis et al. (2000)
+L4 : 2MASS J21580457-1550098 – J. D. Kirkpatrick et al. (2008)
+L5 : SDSS J083506.16+195304.4 – K. Chiu et al. (2006)
+L6 : 2MASSI J1010148-040649 – K. L. Cruz et al. (2003)
+L7 : 2MASSW J2148162+400359 – A. C. Schneider et al. (2014)
+L8 : 2MASSW J1632291+190441 – J. D. Kirkpatrick et al. (1999)
+L9 : DENIS-P J0255-4700 – J. D. Kirkpatrick et al. (2008)"""
 
-T_STANDARD_REFERENCES = """T0, SDSS J120747.17+024424.8, S. L. Hawley et al. (2002)
-T1, 2MASS J12462965-3139280, G. N. Mace et al. (2013)
-T2, SDSSp J125453.90-012247.4, A. J. Burgasser et al. (2006)
-T3, 2MASS J06560926+4205301, R. L. Griffith et al. (2012)
-T4, 2MASSI J2254188+312349, A. J. Burgasser et al. (2006)
-T5, 2MASS J15031961+2525196, A. J. Burgasser et al. (2006)
-T6, 2MASS J15065257+7027247, R. L. Griffith et al. (2012)
-T7, 2MASSI J0727182+171001, A. J. Burgasser et al. (2006)
-T8, 2MASSI J0415195-093506, A. J. Burgasser et al. (2006)
-T9, WISEP J174124.25+255319.5, R. L. Griffith et al. (2012)"""
+T_STANDARD_REFERENCES = """T0 : SDSS J120747.17+024424.8 – S. L. Hawley et al. (2002)
+T1 : 2MASS J12462965-3139280 – G. N. Mace et al. (2013)
+T2 : SDSSp J125453.90-012247.4 – A. J. Burgasser et al. (2006)
+T3 : 2MASS J06560926+4205301 – R. L. Griffith et al. (2012)
+T4 : 2MASSI J2254188+312349 – A. J. Burgasser et al. (2006)
+T5 : 2MASS J15031961+2525196 – A. J. Burgasser et al. (2006)
+T6 : 2MASS J15065257+7027247 – R. L. Griffith et al. (2012)
+T7 : 2MASSI J0727182+171001 – A. J. Burgasser et al. (2006)
+T8 : 2MASSI J0415195-093506 – A. J. Burgasser et al. (2006)
+T9 : WISEP J174124.25+255319.5 – R. L. Griffith et al. (2012)"""
 
 standards_aperture = get_standards("../resources/standards/sequence/aperture")
 L_standards_aperture = [s for s in standards_aperture if s["SpT"].startswith("L")]
@@ -224,10 +311,10 @@ plot_group(ax_T, T_standards_aperture, color_aperture)
 plot_group(ax_L, L_standards_psf, color_psf, plot_spt=False)
 min_y, max_y = plot_group(ax_T, T_standards_psf, color_psf, plot_spt=False)
 
-fig.suptitle("Aperture (black) vs. PSF (red) photometry", fontsize=26)
+fig.suptitle("SPHEREx Aperture (black) vs. PSF (red) photometry", fontsize=26)
 
-ax_L.set_title("SPHEREx L dwarfs standards")
-ax_T.set_title("SPHEREx T dwarfs standards")
+ax_L.set_title("L dwarfs")
+ax_T.set_title("T dwarfs")
 
 # -----------------------------
 # Final plot styling
@@ -247,24 +334,15 @@ y_label = r"F$_{\mathrm{\lambda}}$ + offset" if flux_type == "F_lambda" else "Fl
 ax_L.set_ylim(min_y - margin, max_y + margin)
 ax_L.set_ylabel(y_label, fontsize=20)
 
-if plot_bands:
-    lw = 0.8
-
-    # CO2 absorption band
-    plt.axvline(4.2, color="tab:green", linewidth=lw, linestyle="--")
-    plt.axvline(4.3, color="tab:green", linewidth=lw, linestyle="--")
-
-    # CO absorption band
-    plt.axvline(4.5, color="tab:blue", linewidth=lw, linestyle="--")
-    plt.axvline(4.8, color="tab:blue", linewidth=lw, linestyle="--")
+if plot_features:
+    shade_absorption_features(ax_L, dwarf_type="L")
+    shade_absorption_features(ax_T, dwarf_type="T")
 
 # Reference boxes below each sequence plot.
-add_standard_reference_box(ax_L, L_STANDARD_REFERENCES, title="L dwarf standards")
-add_standard_reference_box(ax_T, T_STANDARD_REFERENCES, title="T dwarf standards")
+add_standard_reference_box(ax_L, L_STANDARD_REFERENCES)
+add_standard_reference_box(ax_T, T_STANDARD_REFERENCES)
 
 file_name = f"standards_{flux_type}.pdf"
-
-from matplotlib.patches import Rectangle
 
 # Add invisible rectangle below figure to force bottom padding
 fig.add_artist(Rectangle(

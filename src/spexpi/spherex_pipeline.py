@@ -273,7 +273,7 @@ class PipelineConfig:
     """Base output directory for spectra, plots, and optional manifests."""
 
     clip_flux_at_wavelength: float | None = None
-    """Clip flux at wavelength (in microns)."""
+    """Clip flux values at wavelengths shorter than a specified cutoff (in microns) to remove the noisy short-wavelength region."""
 
     save_raw_measurements: bool = False
     """If True, write the per-cutout measurement table to FITS."""
@@ -299,13 +299,13 @@ class PipelineConfig:
     plot_spline: bool = True
     """If True, plot a smooth guide line over the spectrum plot."""
 
-    spline_mode: str = "binned_median"
+    spline_mode: str = "interpolate"
     """Spline mode for diagnostic plots: 'binned_median' for a broad-shape guide, or 'interpolate' to connect all points."""
 
-    spline_n_bins: int = 35
+    spline_n_bins: int = 50
     """Number of wavelength bins used by spline_mode='binned_median'. Lower values produce a smoother broad-shape guide."""
 
-    spline_min_points_per_bin: int = 2
+    spline_min_points_per_bin: int = 1
     """Minimum number of valid points required in a wavelength bin for the broad-shape spline."""
 
     spline_sigma_clip: float | None = 3.0

@@ -317,7 +317,6 @@ cfg = PipelineConfig(
 
     # Outputs
     output_dir="../resources/objects/spectra",
-    plot_spectrum=True,
     save_raw_measurements=False,
     save_manifest=False,
 
@@ -325,6 +324,14 @@ cfg = PipelineConfig(
     reference_epoch_yr=ref_epoch,
     pmra_masyr=pmra,
     pmdec_masyr=pmdec,
+
+    # Plotting options
+    plot_spectrum=True,
+    plot_unbinned_points_with_binned_spline=True,
+    plot_binned_points_with_unbinned_overlay=True,
+    plot_spectral_channel_overlay=False,
+    plot_format="pdf",
+    plot_flux_lambda=False,
 )
 
 spectra, measurements = run_spherex_pipeline(
@@ -348,17 +355,15 @@ When `photometry_method="aperture"` or `photometry_method="psf"`, the first retu
 `astropy.table.Table`. When `photometry_method="both"`, the first return value is a dictionary with keys such as
 `"aperture"` and `"psf"`.
 
-Spectrum plots:
+Spectrum diagnostic plots:
+
+a) Aperture photometry:
 
 <img src="resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_aperture_spectrum.png" alt="Spectrum Aperture" style="width:70%; height:auto;">
 
+b) PSF photometry:
+
 <img src="resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_psf_spectrum.png" alt="Spectrum PSF" style="width:70%; height:auto;">
-
-Above spectra are binned by spectral channel. Unbinnded versions are also available with `reduce_oversampling=False`:
-
-<img src="resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_aperture_spectrum_unbinned.png" alt="Spectrum Aperture Unbinnded" style="width:70%; height:auto;">
-
-<img src="resources/objects/spectra/plots/T2 SIMP J013656.5+093347.3_psf_spectrum_unbinned.png" alt="Spectrum PSF Unbinnded" style="width:70%; height:auto;">
 
 ### b) Compare an observed spectrum to templates
 
@@ -464,11 +469,11 @@ Comparison plot:
 
 Spectral standards used for comparison:
 
-![Spectral standards F nu](resources/standards/sequence/standards_F_nu.png)
+![Spectral standards F nu](resources/standards/sequence/standards_F_nu_features.png)
 
 Same as above in units of `F_lambda`:
 
-![Spectral standards F lambda](resources/standards/sequence/standards_F_lambda.png)
+![Spectral standards F lambda](resources/standards/sequence/standards_F_lambda_features.png)
 
 ### c) Stack and plot images
 
@@ -1030,20 +1035,30 @@ Create a compact object name from coordinates.
 
 ### Output products and plotting
 
-| Parameter                |             Default | Description                                                                                 |
-|--------------------------|--------------------:|---------------------------------------------------------------------------------------------|
-| `output_dir`             | `"spherex_spectra"` | Base output directory for spectra, plots, and optional manifests.                           |
-| `save_raw_measurements`  |             `False` | If `True`, write the per-cutout measurement table to FITS.                                  |
-| `save_manifest`          |             `False` | If `True`, write CSV/JSONL processing manifests for cutouts and measurements.               |
-| `manifest_format`        |            `"both"` | Manifest output format: `'csv'`, `'jsonl'`, or `'both'`.                                    |
-| `plot_flux_lambda`       |              `True` | If `True`, plot spectra as `F_lambda`; otherwise plot the stored `F_nu` flux density.       |
-| `plot_spectrum`          |              `True` | If `True`, create a diagnostic spectrum plot.                                               |
-| `plot_format`            |             `"pdf"` | File extension/format for saved diagnostic plots.                                           |
-| `plot_color`             |               `"k"` | Matplotlib color for the final diagnostic spectrum plot.                                    |
-| `plot_spline`            |              `True` | If `True`, plot a spline over the spectrum data points.                                     |
-| `spline_density`         |              `1000` | Number of spline points for the spectrum plot.                                              |
-| `plot_vertical_line`     |             `False` | If `True`, plot a vertical line at the wavelength specified using `vertical_line_position`. |
-| `vertical_line_position` |               `0.0` | Position of the vertical line in microns.                                                   |
+| Parameter                                  |              Default | Description                                                                                                                       |
+|--------------------------------------------|---------------------:|-----------------------------------------------------------------------------------------------------------------------------------|
+| `output_dir`                               |  `"spherex_spectra"` | Base output directory for spectra, plots, and optional manifests.                                                                 |
+| `save_raw_measurements`                    |              `False` | If `True`, write the per-cutout measurement table to FITS.                                                                        |
+| `save_manifest`                            |              `False` | If `True`, write CSV/JSONL processing manifests for cutouts and measurements.                                                     |
+| `manifest_format`                          |             `"both"` | Manifest output format: `'csv'`, `'jsonl'`, or `'both'`.                                                                          |
+| `plot_flux_lambda`                         |               `True` | If `True`, plot spectra as `F_lambda`; otherwise plot the stored `F_nu` flux density.                                             |
+| `plot_spectrum`                            |               `True` | If `True`, create a diagnostic spectrum plot.                                                                                     |
+| `plot_format`                              |              `"pdf"` | File extension/format for saved diagnostic plots.                                                                                 |
+| `plot_color`                               |                `"k"` | Matplotlib color for the final diagnostic spectrum plot.                                                                          |
+| `plot_spline`                              |               `True` | If `True`, plot a spline over the spectrum data points.                                                                           |
+| `spline_mode`                              |      `"interpolate"` | Spline mode for diagnostic plots: 'binned_median' for a broad-shape guide, or 'interpolate' to connect all points.                |
+| `spline_n_bins`                            |                   50 | Number of wavelength bins used by spline_mode='binned_median'. Lower values produce a smoother broad-shape guide.                 |
+| `spline_min_points_per_bin`                |                    1 | Minimum number of valid points required in a wavelength bin for the broad-shape spline.                                           |
+| `spline_sigma_clip`                        |                  3.0 | Optional sigma-clipping threshold inside each spline wavelength bin; None disables clipping.                                      |
+| `plot_unbinned_points_with_binned_spline`  |                False | If True, plot unbinned points and overlay a dense PCHIP spline computed from the final binned spectrum.                           |
+| `plot_binned_points_with_unbinned_overlay` |                False | If True together with plot_unbinned_points_with_binned_spline, also show the exact binned spectrum points used as spline anchors. |
+| `spline_density`                           |               `1000` | Number of dense wavelength samples used to draw the spectrum spline/guide line.                                                   |
+| `plot_spectral_channel_overlay`            |              `False` | If True, overlay spectral-channel bin ranges on the spectrum plot.                                                                |
+| `plot_spectral_channel_overlay_detectors`  | `(1, 2, 3, 4, 5, 6)` | Detector numbers whose spectral-channel bins are shown on the plot.                                                               |
+| `plot_spectral_channel_overlay_wl_min`     |                 None | Minimum wavelength, in microns, for the spectral-channel overlay.                                                                 |
+| `plot_spectral_channel_overlay_wl_max`     |                 None | Maximum wavelength, in microns, for the spectral-channel overlay.                                                                 |
+| `plot_vertical_line`                       |              `False` | If `True`, plot a vertical line at the wavelength specified using `vertical_line_position`.                                       |
+| `vertical_line_position`                   |                `0.0` | Position of the vertical line in microns.                                                                                         |
 
 ---
 

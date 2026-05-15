@@ -14,7 +14,6 @@ from pathlib import Path
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import to_rgba
 from scipy.interpolate import PchipInterpolator
 
 
@@ -44,7 +43,7 @@ def jy_to_flambda(wavelength_um, flux_jy):
     return flux.to(u.erg / u.s / u.cm ** 2 / u.um, equivalencies=u.spectral_density(wavelength)).value
 
 
-def plot_curves(ax, wl, flux, err, color, plot_error=True, zorder=0, marker_size=4, line_width=1.0):
+def plot_curves(ax, wl, flux, err, color, plot_error=True, zorder=0, marker_size=5, line_width=1.0):
     wl = np.asarray(wl, dtype=float)
     flux = np.asarray(flux, dtype=float)
     err = np.asarray(err, dtype=float)
@@ -77,15 +76,16 @@ def plot_curves(ax, wl, flux, err, color, plot_error=True, zorder=0, marker_size
             yerr=err,
             fmt="o",
             ms=marker_size,
-            color=to_rgba(color, alpha=0.2),
+            color=color,
             capsize=0,
             elinewidth=0.8,
-            markeredgewidth=0,
-            markerfacecolor=color,
+            markeredgewidth=0.8,
+            markerfacecolor="white",
             zorder=zorder
         )
     else:
-        ax.scatter(wl, flux, s=marker_size, c=color, zorder=zorder)
+        ax.scatter(wl, flux, s=marker_size * 2, edgecolor=color, zorder=zorder, linewidth=0.8,
+                   facecolor="white", )
 
 
 def format_stat_label(metric, statistic):

@@ -12,20 +12,16 @@ pmra, pmdec = -495, -1472  # 2013ApJ...762..119M
 ref_epoch = Time("2000-04-11").decimalyear  # 2MASS
 
 object_name = "T8 2MASSI J0415195-093506"
-# Bad results
-# ra, dec = 63.831432, -9.585187  # 2MASS
-# pmra, pmdec = 2193, 527  # 2009AJ....137....1F
-# ref_epoch = Time("1998-11-15").decimalyear  # 2MASS
-ra, dec = 63.849, -9.582  # determined from stacked SPHEREx images
-ref_epoch = None
+ra, dec = 63.831432, -9.585187  # 2MASS
+pmra, pmdec = 2193, 527  # 2009AJ....137....1F
+ref_epoch = Time("1998-11-15").decimalyear  # 2MASS
 
 object_name = "T7 2MASSI J0727182+171001"
 ra, dec = 111.826025, 17.167002  # 2MASS
 pmra, pmdec = 1046, -767  # 2009AJ....137....1F
 ref_epoch = Time("1997-10-29").decimalyear  # 2MASS
 # selected_aperture_radius_pix=1.0
-# psf_local_grid_half_range_pix=0.5
-# keep_negative_flux = False
+# outlier_nbr_of_bins = 4
 
 object_name = "T6 2MASS J15065257+7027247"
 ra, dec = 226.7026361, 70.4616191
@@ -46,14 +42,13 @@ object_name = "T3 2MASS J06560926+4205301"
 ra, dec = 104.038623, 42.091709  # 2MASS
 pmra, pmdec = 321.0, 155.5  # 2020AJ....159..257B
 ref_epoch = Time("1998-11-05").decimalyear  # 2MASS
-# selected_aperture_radius_pix=1.0
+# selected_aperture_radius_pix = 1.0
 # psf_local_grid_half_range_pix=0.5
 
 object_name = "T2 SDSSp J125453.90-012247.4"
 ra, dec = 193.7223713, -1.3793373  # NSC DR2
 pmra, pmdec = -514.451, 140.791  # NSC DR2
 ref_epoch = Time("2016-05-08 04:33:26").decimalyear  # NSC DR2
-# remove_outliers=False
 
 object_name = "T1 2MASS J12462965-3139280"
 ra, dec = 191.623491, -31.6604026
@@ -64,8 +59,7 @@ object_name = "T0 SDSS J120747.17+024424.8"
 ra, dec = 181.9444058, 2.7407938  # NSC DR2
 pmra, pmdec = -529.769, 108.917  # NSC DR2
 ref_epoch = Time("2015-08-01 12:23:52").decimalyear  # NSC DR2
-# selected_aperture_radius_pix=1.0
-# keep_negative_flux=False
+# selected_aperture_radius_pix = 1.0
 
 object_name = "L9 DENIS-P J0255-4700"
 ra, dec = 43.7719859, -47.0167284
@@ -122,21 +116,6 @@ ra, dec = 56.4293698, 25.6729385
 pmra, pmdec = -95.363, -41.319
 ref_epoch = 2016.0
 
-object_name = "M9 LHS 2924"
-ra, dec = 217.1782723, 33.1744121
-pmra, pmdec = -346.961, -710.986
-ref_epoch = 2016.0
-
-object_name = "M8 VB 10"
-ra, dec = 289.2373737, 5.1443733
-pmra, pmdec = -598.761, -1366.063
-ref_epoch = 2016.0
-
-object_name = "M7 VB 8"
-ra, dec = 253.8932463, -8.398523
-pmra, pmdec = -813.038, -870.609
-ref_epoch = 2016.0
-
 # ------------------------------------------------------
 # Test cases
 # ------------------------------------------------------
@@ -146,7 +125,8 @@ ra, dec = 24.2412498, 9.5630705
 pmra, pmdec = 1238.244, -16.156
 ref_epoch = 2016.0
 
-photometry_method = "both"
+selected_aperture_radius_pix = 2.0
+psf_local_grid_half_range_pix = 1.0
 outlier_nbr_of_bins = 8
 
 cfg = PipelineConfig(
@@ -154,10 +134,10 @@ cfg = PipelineConfig(
     # ============================================================
     # 1. PHOTOMETRY MODE & CORE SETTINGS
     # ============================================================
-    photometry_method=photometry_method,  # "aperture", "psf", or "both"
+    photometry_method="aperture",  # "aperture", "psf", or "both"
 
     # --- Aperture photometry ---
-    selected_aperture_radius_pix=2.0,  # main radius used for final spectrum
+    selected_aperture_radius_pix=selected_aperture_radius_pix,  # main radius used for final spectrum
     aperture_radii_pix=(1.0, 2.0, 3.0),  # radii tested (useful for diagnostics / robustness)
 
     # --- PSF photometry ---
@@ -171,7 +151,7 @@ cfg = PipelineConfig(
     enable_psf_local_grid_search=True,
 
     # Search window around initial WCS position
-    psf_local_grid_half_range_pix=1.0,  # typical: 0.5–2.0
+    psf_local_grid_half_range_pix=psf_local_grid_half_range_pix,  # typical: 0.5–2.0
 
     # Sampling step
     psf_local_grid_step_pix=0.25,  # fine grid; use 0.5 if half_range > 1.0
@@ -245,10 +225,12 @@ cfg = PipelineConfig(
     # ============================================================
     plot_spline=True,
     spline_density=1000,
+    plot_unbinned_points_with_binned_spline=True,
+    plot_binned_points_with_unbinned_overlay=True,
+    plot_spectral_channel_overlay=False,
     plot_color="k",
     plot_format="pdf",
     plot_flux_lambda=False,
-
 )
 
 run_spherex_pipeline(ra, dec, object_name=object_name, cfg=cfg)
