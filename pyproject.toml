@@ -31,18 +31,19 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Astronomy"
 ]
 dependencies = [
-    "numpy>=1.23",
-    "astropy>=5.3",
-    "matplotlib>=3.7",
-    "scipy>=1.10",
-    "photutils>=1.9",
-    "pyvo>=1.4",
-    "requests>=2.31",
-    "tqdm>=4.65",
-    "pandas>=2.0",
-    "fsspec>=2023.1",
-    "s3fs>=2023.1",
-    "reproject>=0.11"
+    "numpy>=2.4.6",
+    "astropy>=7.2.0",
+    "matplotlib>=3.10.9",
+    "scipy>=1.17.1",
+    "photutils>=3.0.0",
+    "pyvo>=1.8.1",
+    "requests>=2.34.2",
+    "pillow>=12.2.0",
+    "tqdm>=4.67.3",
+    "pandas>=3.0.3",
+    "fsspec>=2026.4.0",
+    "s3fs>=2026.4.0",
+    "reproject>=0.19.0"
 ]
 
 [project.urls]
