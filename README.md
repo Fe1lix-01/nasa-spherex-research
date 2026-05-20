@@ -36,6 +36,7 @@ FITS spectra and diagnostic plots.
 - [Recommended workflow](#recommended-workflow)
 - [Troubleshooting](#troubleshooting)
 - [Acknowledgements](#acknowledgements)
+- [Citation](#citation)
 
 ---
 
@@ -126,7 +127,8 @@ enabled, these files define wavelength-channel centers and edges used to bin rep
 
 Aperture photometry is performed on calibrated cutout images. The source aperture is centered on the epoch-adjusted
 target position. A local annulus is used to estimate the background, with configurable sigma clipping and background
-estimator (`mean`, `median`, or `mode`).
+estimator (`mean`, `median`, or `mode`). Bad pixels are excluded from the source aperture and the background annulus.
+Known objects are masked only in the latter.
 
 The pipeline can measure multiple aperture radii for diagnostics but builds the final aperture spectrum from
 `selected_aperture_radius_pix`.
@@ -925,7 +927,7 @@ Create a compact object name from coordinates.
 
 ## Configuration reference
 
-`PipelineConfig` contains many options. The most commonly edited options are shown below.
+`PipelineConfig` contains all the pipeline configuration parameters, which are documented below.
 
 ### IRSA query and parallel execution
 
@@ -1131,3 +1133,11 @@ Check:
 This package uses SPHEREx mission data products and calibration files distributed through IRSA and the public SPHEREx
 archive. It also relies on the Python scientific ecosystem, including Astropy, NumPy, SciPy, Matplotlib, Photutils,
 PyVO, and related packages.
+
+---
+
+## Citation
+
+If you use SPExPI in your work, please cite it using the following:
+
+[![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.20287823-blue)](https://doi.org/10.5281/zenodo.20287823)
