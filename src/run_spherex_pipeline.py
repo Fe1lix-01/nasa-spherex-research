@@ -143,7 +143,7 @@ cfg = PipelineConfig(
     # --- PSF photometry ---
     psf_kernel_radius_native=5,  # PSF kernel half-size (native pixels)
     psf_shift_sign=1.0,  # sign convention for subpixel shift
-    psf_fit_background_gradient=False,  # fit background gradient (usually not needed)
+    psf_fit_background_gradient=False,  # fit background gradient
 
     # ============================================================
     # 2. PSF LOCAL GRID SEARCH (centroid refinement)
