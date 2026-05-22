@@ -27,10 +27,14 @@ from astropy.wcs import WCS
 from matplotlib.colors import to_rgba
 from matplotlib.lines import Line2D
 from matplotlib.ticker import ScalarFormatter
+from packaging.version import Version
 from photutils.aperture import CircularAnnulus, CircularAperture, ApertureStats, aperture_photometry
 from scipy.interpolate import PchipInterpolator
 from scipy.ndimage import shift as ndi_shift
 from tqdm.auto import tqdm
+
+VERSION_FIXED = Version("6.5.6")
+PSF_FIX_TAG = "psffix1"
 
 logging.getLogger("astropy").setLevel(logging.WARNING)
 
@@ -1153,7 +1157,8 @@ def process_cutout_row(row, ra: float, dec: float, cfg: PipelineConfig):
 
     for attempt in range(cfg.retries):
         try:
-            with fits.open(open_path) as hdul:
+            with fits.open(open_path) as old_hdul:
+                hdul = update_psf_header(old_hdul)
                 image_hdu = hdul["IMAGE"].copy()
                 flags_hdu = hdul["FLAGS"].copy() if "FLAGS" in hdul else None
                 var_hdu = hdul["VARIANCE"].copy() if "VARIANCE" in hdul else None
@@ -1243,6 +1248,221 @@ def process_cutout_row(row, ra: float, dec: float, cfg: PipelineConfig):
         "cutout_index": int(row["cutout_index"]),
         "status": f"open_failed:{type(last_exc).__name__}",
     }
+
+
+def update_psf_header(old_hdul):
+    """
+    Fix an old PSF FITS file header by rewriting only the per-plane header metadata
+    so that plane k corresponds to x-fast ordering:
+        k0 = iy * bins_x + ix
+
+    The cube data are left untouched.
+
+    Parameters
+    ----------
+    old_hdul : fits.HDUList
+        Old SPHEREx Spectral Image HDUL
+
+    Return
+    ----------
+    new_hdul : fits.HDUList
+        New SPHEREx Spectral Image HDUL with updated PSF zone data in header and updated version number
+    """
+
+    if psf_fix_applied(old_hdul):
+        return old_hdul
+
+    ## Get Header
+    extname = "PSF"
+    hdu = old_hdul[extname]
+    cube = np.asarray(hdu.data)
+    hdr_in = hdu.header.copy()
+
+    if cube.ndim != 3:
+        raise ValueError(f"Expected 3D PSF cube, got shape {cube.shape}")
+
+    nzone = cube.shape[0]
+    bins_x, bins_y = infer_grid_shape_from_header_comments(hdr_in, nzone)
+
+    # print(f"Detected bins_x={bins_x}, bins_y={bins_y}, nzone={nzone}")
+
+    x_center_by_ix, y_center_by_iy, x_width_by_ix, y_width_by_iy = collect_axis_values_by_zone(
+        hdr_in, nzone
+    )
+
+    # Validate that all needed axis values were recovered
+    missing = []
+    for ix in range(bins_x):
+        if ix not in x_center_by_ix:
+            missing.append(f"x_center[{ix}]")
+        if ix not in x_width_by_ix:
+            missing.append(f"x_width[{ix}]")
+    for iy in range(bins_y):
+        if iy not in y_center_by_iy:
+            missing.append(f"y_center[{iy}]")
+        if iy not in y_width_by_iy:
+            missing.append(f"y_width[{iy}]")
+
+    if missing:
+        raise ValueError(f"Missing axis metadata recovered from old header: {missing}")
+
+    hdr_out = hdr_in.copy()
+
+    # Rewrite only the per-plane metadata so plane k matches x-fast ordering.
+    # plane k0 should correspond to:
+    #   ix = k0 % bins_x
+    #   iy = k0 // bins_x
+    for k0 in range(nzone):
+        ix = k0 % bins_x
+        iy = k0 // bins_x
+        k1 = k0 + 1
+
+        hdr_out[f"XCTR_{k1}"] = (
+            x_center_by_ix[ix],
+            f"Center of x zone ({ix}, {iy})"
+        )
+        hdr_out[f"YCTR_{k1}"] = (
+            y_center_by_iy[iy],
+            f"Center of y zone ({ix}, {iy})"
+        )
+        hdr_out[f"XWID_{k1}"] = (
+            x_width_by_ix[ix],
+            f"Width of x zone ({ix}, {iy})"
+        )
+        hdr_out[f"YWID_{k1}"] = (
+            y_width_by_iy[iy],
+            f"Width of y zone ({ix}, {iy})"
+        )
+
+    hdr_out["HISTORY"] = "Rewrote PSF per-plane zone metadata to x-fast ordering."
+    new_hdu = fits.ImageHDU(data=cube, header=hdr_out, name=hdu.name)
+
+    ext_index = old_hdul.index_of(extname)
+    new_hdul = fits.HDUList()
+    for i, old in enumerate(old_hdul):
+        if i == ext_index:
+            new_hdul.append(new_hdu)
+        else:
+            new_hdul.append(old.copy())
+
+    #  Update version
+    new_hdul['PRIMARY'].header["VERSION"] = new_hdul['PRIMARY'].header["VERSION"] + "+psffix1"
+
+    return (new_hdul)
+
+
+def psf_fix_applied(hdul) -> bool:
+    """
+    Return True if the PSF fix has been applied.
+
+    Rules:
+    - If the VERSION header is missing in the primary HDU, the fix is not applied.
+    - If VERSION >= VERSION_FIXED, the fix is included in the software release.
+    - Otherwise the local version tag (+...) must contain PSF_FIX_TAG.
+    """
+    header = hdul[0].header
+
+    if "VERSION" not in header:
+        return False
+
+    v = Version(header["VERSION"])
+
+    if v >= VERSION_FIXED:
+        return True
+
+    return v.local is not None and PSF_FIX_TAG in v.local
+
+
+def parse_ixiy_from_comment(comment):
+    _zone_pat = re.compile(r"\((\d+)\s*,\s*(\d+)\)")
+    m = _zone_pat.search(str(comment))
+    if not m:
+        raise ValueError(f"Could not parse zone indices from comment: {comment!r}")
+    return int(m.group(1)), int(m.group(2))
+
+
+def infer_grid_shape_from_header_comments(hdr, nzone):
+    max_ix = -1
+    max_iy = -1
+
+    for k1 in range(1, nzone + 1):
+        key = f"XCTR_{k1}"
+        if key not in hdr:
+            raise KeyError(f"Missing required key: {key}")
+        ix, iy = parse_ixiy_from_comment(hdr.comments[key])
+        max_ix = max(max_ix, ix)
+        max_iy = max(max_iy, iy)
+
+    bins_x = max_ix + 1
+    bins_y = max_iy + 1
+
+    if bins_x * bins_y != nzone:
+        raise ValueError(
+            f"Inconsistent grid inferred from comments: "
+            f"bins_x={bins_x}, bins_y={bins_y}, nzone={nzone}"
+        )
+
+    return bins_x, bins_y
+
+
+def collect_axis_values_by_zone(hdr, nzone):
+    """
+    Read the old header and collect unique x/y centers and widths by zone index
+    labels found in the comments.
+
+    This uses the old header only to recover the per-axis values for each ix, iy.
+    It does NOT use the old plane ordering as truth.
+    """
+    x_center_by_ix = {}
+    y_center_by_iy = {}
+    x_width_by_ix = {}
+    y_width_by_iy = {}
+
+    for k1 in range(1, nzone + 1):
+        ix, iy = parse_ixiy_from_comment(hdr.comments[f"XCTR_{k1}"])
+
+        xck = f"XCTR_{k1}"
+        yck = f"YCTR_{k1}"
+        xwk = f"XWID_{k1}"
+        ywk = f"YWID_{k1}"
+
+        if xck in hdr:
+            val = hdr[xck]
+            if ix in x_center_by_ix and not np.isclose(x_center_by_ix[ix], val):
+                raise ValueError(
+                    f"Inconsistent XCTR for ix={ix}: "
+                    f"{x_center_by_ix[ix]} vs {val}"
+                )
+            x_center_by_ix[ix] = val
+
+        if yck in hdr:
+            val = hdr[yck]
+            if iy in y_center_by_iy and not np.isclose(y_center_by_iy[iy], val):
+                raise ValueError(
+                    f"Inconsistent YCTR for iy={iy}: "
+                    f"{y_center_by_iy[iy]} vs {val}"
+                )
+            y_center_by_iy[iy] = val
+
+        if xwk in hdr:
+            val = hdr[xwk]
+            if ix in x_width_by_ix and not np.isclose(x_width_by_ix[ix], val):
+                raise ValueError(
+                    f"Inconsistent XWID for ix={ix}: "
+                    f"{x_width_by_ix[ix]} vs {val}"
+                )
+            x_width_by_ix[ix] = val
+
+        if ywk in hdr:
+            val = hdr[ywk]
+            if iy in y_width_by_iy and not np.isclose(y_width_by_iy[iy], val):
+                raise ValueError(
+                    f"Inconsistent YWID for iy={iy}: "
+                    f"{y_width_by_iy[iy]} vs {val}"
+                )
+            y_width_by_iy[iy] = val
+
+    return x_center_by_ix, y_center_by_iy, x_width_by_ix, y_width_by_iy
 
 
 def open_cutouts_parallel(prepared_rows: list[dict], ra: float, dec: float, cfg: PipelineConfig) -> list[dict]:
