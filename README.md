@@ -1140,4 +1140,8 @@ PyVO, and related packages.
 
 If you use SPExPI in your work, please cite it using the following:
 
-[![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.20287823-blue)](https://doi.org/10.5281/zenodo.20287823)
+
+
+| Zenodo     |      | RNAAS                                                                                                                                 |
+|--------------------------------------------------------------------------------------------------------------------------------------|------|---------------------------------------------------------------------------------------------------------------------------------------|
+| [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20287823-blue?style=flat-square)](https://doi.org/10.5281/zenodo.20287823) | and  | [![DOI](https://img.shields.io/badge/DOI-10.3847%2F2515--5172%2Fae707b-191970?style=flat-square)](https://doi.org/10.3847/2515-5172/ae707b) |
