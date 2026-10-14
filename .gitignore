@@ -2,3 +2,11 @@ resources/objects/data
 resources/standards/data
 test
 .idea
+
+.venv/
+build/
+src/spexpi.egg-info/
+__pycache__/
+*.pyc
+.pytest_cache/
+dist/
