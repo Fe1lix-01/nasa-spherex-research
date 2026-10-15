@@ -10,3 +10,28 @@ __pycache__/
 *.pyc
 .pytest_cache/
 dist/
+
+# Next.js / Node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Scientific datasets
+data/
+experiments/data/
+*.fits
+*.fits.gz
+
+# Local Python/Jupyter
+.ipynb_checkpoints/
+.coverage
+htmlcov/
+
+# macOS
+.DS_Store
