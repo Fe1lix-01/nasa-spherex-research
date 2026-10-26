@@ -1,4 +1,4 @@
-import SpectralViewer from "@/components/SpectralViewer";
+import SpectralViewer from "@/features/viewer/SpectralViewer";
 
 export default function Home() {
   return <SpectralViewer />;

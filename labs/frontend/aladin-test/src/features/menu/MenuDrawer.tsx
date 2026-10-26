@@ -14,11 +14,11 @@ import Close from "@mui/icons-material/Close";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import HelpOutlined from "@mui/icons-material/HelpOutlined";
 import Tune from "@mui/icons-material/Tune";
-import { ABOUT, FILTERS_INTRO, FOOTER_NOTE, PHENOMENA_INTRO } from "@/lib/content";
-import type { FilterDef } from "@/lib/types";
+import { ABOUT, FILTERS_INTRO, FOOTER_NOTE, PHENOMENA_INTRO } from "@/features/menu/content";
+import type { FilterDef } from "@/features/viewer/types";
 import { eter } from "@/theme/theme";
-import { OrbitIcon } from "./CustomIcons";
-import { PHENOMENA } from "./Phenomena";
+import { OrbitIcon } from "../../components/icons/CustomIcons";
+import { PHENOMENA } from "../phenomena/Phenomena";
 
 type Props = {
   open: boolean;

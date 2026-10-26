@@ -1,5 +1,5 @@
-import { N } from "./constants";
-import type { FilterDef, Layers, RGB } from "./types";
+import { N } from "../constants";
+import type { FilterDef, Layers, RGB } from "../types";
 
 const out: RGB = [0, 0, 0];
 
