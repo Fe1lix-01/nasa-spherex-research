@@ -1,5 +1,4 @@
-import type { FilterDef, RGB } from "./types";
-
+import type { FilterDef, RGB } from "../types";
 type Stop = [number, [number, number, number]];
 
 /** Construye una paleta de 256 colores a partir de paradas [posición, [r,g,b]]. */

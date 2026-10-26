@@ -8,16 +8,16 @@ import IconButton from "@mui/material/IconButton";
 import Snackbar from "@mui/material/Snackbar";
 import Typography from "@mui/material/Typography";
 import FiberManualRecord from "@mui/icons-material/FiberManualRecord";
-import { DEMO_IMAGE_URL, H, W } from "@/lib/constants";
-import { FILTERS } from "@/lib/filters";
-import { renderLayers } from "@/lib/render";
-import { createLayers, generateScene, loadImageIntoLayers, loadUrlIntoLayers } from "@/lib/scene";
-import type { Layers } from "@/lib/types";
+import { DEMO_IMAGE_URL, H, W } from "@/features/viewer/constants";
+import { FILTERS } from "./engine/filters";
+import { renderLayers } from "@/features/viewer/engine/render";
+import { createLayers, generateScene, loadImageIntoLayers, loadUrlIntoLayers } from "@/features/viewer/engine/scene";
+import type { Layers } from "@/features/viewer/types";
 import { eter } from "@/theme/theme";
-import ControlPanel from "./ControlPanel";
-import { CrosshairIcon } from "./CustomIcons";
-import MenuDrawer from "./MenuDrawer";
-import { SvgDefs } from "./Phenomena";
+import ControlPanel from "./components/ControlPanel";
+import { CrosshairIcon } from "../../components/icons/CustomIcons";
+import MenuDrawer from "../menu/MenuDrawer";
+import { SvgDefs } from "../phenomena/Phenomena";
 
 type Source = "demo" | "upload";
 

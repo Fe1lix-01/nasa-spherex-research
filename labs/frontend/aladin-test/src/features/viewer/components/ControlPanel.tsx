@@ -10,7 +10,7 @@ import Slider from "@mui/material/Slider";
 import Typography from "@mui/material/Typography";
 import FileUploadOutlined from "@mui/icons-material/FileUploadOutlined";
 import HelpOutlined from "@mui/icons-material/HelpOutlined";
-import type { FilterDef } from "@/lib/types";
+import type { FilterDef } from "@/features/viewer/types";
 import { eter } from "@/theme/theme";
 
 /* ---------- Slider con etiqueta, valor ámbar y límites (como en Figma) ---------- */

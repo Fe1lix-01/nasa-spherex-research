@@ -1,5 +1,5 @@
-import { H, N, W } from "./constants";
-import type { Layers } from "./types";
+import { H, N, W } from "../constants";
+import type { Layers } from "../types";
 
 /* ---------- ruido y utilidades ---------- */
 
