@@ -26,3 +26,4 @@ if len(table) > 0:
     print(table[:5])
 else:
     print("No se encontraron observaciones.")
+
