@@ -1,50 +1,6 @@
 import { H, N, W } from "../constants";
 import type { Layers } from "../types";
-
-/* ---------- ruido y utilidades ---------- */
-
-const sstep = (a: number, b: number, x: number): number => {
-  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-};
-
-const hash = (x: number, y: number, s: number): number => {
-  let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 1274126177)) | 0;
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-};
-
-const vnoise = (x: number, y: number, s: number): number => {
-  const xi = Math.floor(x);
-  const yi = Math.floor(y);
-  const xf = x - xi;
-  const yf = y - yi;
-  const u = xf * xf * (3 - 2 * xf);
-  const v = yf * yf * (3 - 2 * yf);
-  const a = hash(xi, yi, s);
-  const b = hash(xi + 1, yi, s);
-  const c = hash(xi, yi + 1, s);
-  const d = hash(xi + 1, yi + 1, s);
-  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
-};
-
-const fbm = (x: number, y: number, s: number): number => {
-  let t = 0;
-  let a = 0.5;
-  let f = 1;
-  for (let i = 0; i < 5; i++) {
-    t += a * vnoise(x * f, y * f, s + i);
-    f *= 2;
-    a *= 0.5;
-  }
-  return t;
-};
-
-/** Generador pseudoaleatorio con semilla (misma escena cada vez). */
-const rng = (seed: number) => () => {
-  seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-  return seed / 4294967296;
-};
+import { fbm, rng, sstep } from "./noise";
 
 /* ---------- API ---------- */
 
@@ -141,56 +97,4 @@ export function generateScene(L: Layers): void {
       placed++;
     }
   }
-}
-
-/**
- * Convierte una imagen (RGB) en capas aproximadas.
- * Es solo una aproximación visual: con datos reales cada banda sería su propia imagen.
- */
-function imageToLayers(im: HTMLImageElement, L: Layers): void {
-  const c = document.createElement("canvas");
-  c.width = W;
-  c.height = H;
-  const cx = c.getContext("2d");
-  if (!cx) throw new Error("No se pudo crear el lienzo");
-  // recorte tipo "cover" para llenar el lienzo
-  const s = Math.max(W / im.width, H / im.height);
-  const dw = im.width * s;
-  const dh = im.height * s;
-  cx.drawImage(im, (W - dw) / 2, (H - dh) / 2, dw, dh);
-  const px = cx.getImageData(0, 0, W, H).data;
-  for (let i = 0, p = 0; i < N; i++, p += 4) {
-    const r = px[p] / 255;
-    const g = px[p + 1] / 255;
-    const b = px[p + 2] / 255;
-    const l = 0.299 * r + 0.587 * g + 0.114 * b;
-    L.v[i] = l;
-    L.neb[i] = 0;
-    L.ir[i] = Math.pow(r, 1.2) * 0.9 + l * 0.1;
-    L.th[i] = Math.pow(r * 0.7 + l * 0.3, 2);
-    L.ice[i] = Math.max(0, b - r) * 1.6;
-  }
-}
-
-/** Carga una imagen desde una URL (por ejemplo /escena-demo.jpg en la carpeta public). */
-export function loadUrlIntoLayers(url: string, L: Layers): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const im = new Image();
-    im.onload = () => {
-      try {
-        imageToLayers(im, L);
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
-    };
-    im.onerror = () => reject(new Error(`No se pudo cargar ${url}`));
-    im.src = url;
-  });
-}
-
-/** Carga una imagen elegida por la persona (botón «Subir imagen»). */
-export function loadImageIntoLayers(file: File, L: Layers): Promise<void> {
-  const url = URL.createObjectURL(file);
-  return loadUrlIntoLayers(url, L).finally(() => URL.revokeObjectURL(url));
 }
