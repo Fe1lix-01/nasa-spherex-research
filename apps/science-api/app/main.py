@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.routers import health, observations
+from app.routers import health, observations, objects
                                                  
 app = FastAPI(                                          ## Creamos la instancia de la app (Aparece automaticamente en Swagger)##
     title='ETER API',
@@ -9,3 +10,4 @@ app = FastAPI(                                          ## Creamos la instancia 
 
 app.include_router(health.router)               ## Incluimos en la ruta principal todas la rutas del router
 app.include_router(observations.router)
+app.include_router(objects.router)
