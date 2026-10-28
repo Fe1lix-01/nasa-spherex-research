@@ -1,59 +1,9 @@
 import type { ReactNode } from "react";
 
-/** Definiciones SVG compartidas (gradientes y desenfoques) por las ilustraciones. */
-export function SvgDefs() {
-  return (
-    <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
-      <defs>
-        <filter id="blur6">
-          <feGaussianBlur stdDeviation="6" />
-        </filter>
-        <filter id="blur2">
-          <feGaussianBlur stdDeviation="2" />
-        </filter>
-        <radialGradient id="gGal">
-          <stop offset="0" stopColor="#fff6d8" />
-          <stop offset=".3" stopColor="#ffd48a" stopOpacity=".85" />
-          <stop offset="1" stopColor="#5b7bff" stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id="gStar">
-          <stop offset="0" stopColor="#fff" />
-          <stop offset="1" stopColor="#ffb347" stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id="gDark">
-          <stop offset="0" stopColor="#020308" />
-          <stop offset="1" stopColor="#0b1a2e" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="gTail" x1="1" x2="0">
-          <stop offset="0" stopColor="#bfe9ff" stopOpacity=".9" />
-          <stop offset="1" stopColor="#bfe9ff" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
-
-export type Phenomenon = {
-  id: string;
-  title: string;
-  /** Frase corta que aparece bajo el título. */
-  tagline: string;
-  /** Miniatura en /public/fenomenos. Si no existe, se muestra `art`. */
-  image: string;
-  /** Ilustración SVG de respaldo. */
-  art: ReactNode;
-};
-
 const CRYSTAL = "M0-6 L5-3 L5 3 L0 6 L-5 3 L-5-3Z";
 
-/** Ilustraciones esquemáticas. Reemplázalas por imágenes reales de NASA/JPL-Caltech/IPAC. */
-export const PHENOMENA: Phenomenon[] = [
-  {
-    id: "nebulosa",
-    title: "Nebulosas",
-    tagline: "Polvo que oculta, luz que revela.",
-    image: "/fenomenos/nebulosas.jpg",
-    art: (
+const ART: Record<string, ReactNode> = {
+  nebulosa: (
       <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" style={{ width: "100%", height: "100%" }}>
         <rect width="320" height="180" fill="#04050a" />
         <g filter="url(#blur6)">
@@ -71,13 +21,7 @@ export const PHENOMENA: Phenomenon[] = [
         </g>
       </svg>
     ),
-  },
-  {
-    id: "galaxias",
-    title: "Galaxias",
-    tagline: "Islas de estrellas a otras escalas.",
-    image: "/fenomenos/galaxias.jpg",
-    art: (
+  galaxias: (
       <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" style={{ width: "100%", height: "100%" }}>
         <rect width="320" height="180" fill="#04050a" />
         <g transform="rotate(-25 160 90)">
@@ -95,13 +39,7 @@ export const PHENOMENA: Phenomenon[] = [
         </g>
       </svg>
     ),
-  },
-  {
-    id: "protoestrellas",
-    title: "Protoestrellas y discos",
-    tagline: "Los primeros capítulos de una estrella.",
-    image: "/fenomenos/protoestrellas.jpg",
-    art: (
+  protoestrellas: (
       <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" style={{ width: "100%", height: "100%" }}>
         <rect width="320" height="180" fill="#04050a" />
         <path d="M160 95 L148 6 L172 6Z" fill="#7fd0ff" opacity=".35" filter="url(#blur2)" />
@@ -111,13 +49,7 @@ export const PHENOMENA: Phenomenon[] = [
         <circle cx="160" cy="95" r="14" fill="url(#gStar)" />
       </svg>
     ),
-  },
-  {
-    id: "hielos",
-    title: "Hielos interestelares",
-    tagline: "Moléculas sobre granos de polvo.",
-    image: "/fenomenos/hielos.jpg",
-    art: (
+  hielos: (
       <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" style={{ width: "100%", height: "100%" }}>
         <rect width="320" height="180" fill="#0b1a2e" />
         <ellipse cx="160" cy="90" rx="150" ry="85" fill="url(#gDark)" />
@@ -130,13 +62,7 @@ export const PHENOMENA: Phenomenon[] = [
         </g>
       </svg>
     ),
-  },
-  {
-    id: "cometas",
-    title: "Cometas",
-    tagline: "Viajeros de hielo y polvo.",
-    image: "/fenomenos/cometas.jpg",
-    art: (
+  cometas: (
       <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" style={{ width: "100%", height: "100%" }}>
         <rect width="320" height="180" fill="#04050a" />
         <polygon points="250,70 20,150 30,168 258,88" fill="url(#gTail)" filter="url(#blur2)" />
@@ -150,13 +76,7 @@ export const PHENOMENA: Phenomenon[] = [
         </g>
       </svg>
     ),
-  },
-  {
-    id: "estructura",
-    title: "Estructura del universo",
-    tagline: "La materia teje una red cósmica.",
-    image: "/fenomenos/estructura.jpg",
-    art: (
+  estructura: (
       <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" style={{ width: "100%", height: "100%" }}>
         <rect width="320" height="180" fill="#05030f" />
         <g stroke="#6a5cff" strokeOpacity=".4" fill="none">
@@ -186,5 +106,8 @@ export const PHENOMENA: Phenomenon[] = [
         </g>
       </svg>
     ),
-  },
-];
+};
+
+export default function PhenomenonArt({ id }: { id: string }) {
+  return <>{ART[id] ?? null}</>;
+}
