@@ -18,7 +18,7 @@ import { eter } from "@/theme/theme";
 import ControlPanel from "./components/ControlPanel";
 import { CrosshairIcon } from "../../components/icons/CustomIcons";
 import MenuDrawer from "../menu/MenuDrawer";
-import { SvgDefs } from "../phenomena/Phenomena";
+import { SvgDefs } from "@/features/phenomena/SvgDefs";
 
 type Source = "demo" | "upload";
 

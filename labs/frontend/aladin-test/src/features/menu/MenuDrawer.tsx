@@ -18,7 +18,8 @@ import { ABOUT, FILTERS_INTRO, FOOTER_NOTE, PHENOMENA_INTRO } from "@/features/m
 import type { FilterDef } from "@/features/viewer/types";
 import { eter } from "@/theme/theme";
 import { OrbitIcon } from "../../components/icons/CustomIcons";
-import { PHENOMENA } from "../phenomena/Phenomena";
+import { PHENOMENA } from "@/features/phenomena/data";
+import PhenomenonArt from "@/features/phenomena/PhenomenonArt";
 
 type Props = {
   open: boolean;
@@ -156,7 +157,7 @@ function PhenomenaContent() {
               alt=""
               sx={{ width: 76, height: 76, flexShrink: 0, borderRadius: "12px", backgroundColor: "#000" }}
             >
-              {ph.art}
+              <PhenomenonArt id={ph.id} />
             </Avatar>
             <Box>
               <Typography sx={{ fontSize: 16 }}>{ph.title}</Typography>
