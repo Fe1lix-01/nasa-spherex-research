@@ -6,7 +6,7 @@ import { eter } from "@/theme/theme";
 import { eyebrow } from "./styles";
 
 
-export function AboutSection() {
+export default function AboutSection() {
   return (
     <Box>
       <Typography sx={eyebrow}>{ABOUT.eyebrow}</Typography>

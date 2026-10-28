@@ -6,7 +6,7 @@ import { PHENOMENA } from "@/features/phenomena/data";
 import PhenomenonArt from "@/features/phenomena/PhenomenonArt";
 import { eter } from "@/theme/theme";
 
-export function PhenomenaContent() {
+export default function PhenomenaContent() {
   return (
     <Box>
       <Typography sx={{ fontSize: 15, lineHeight: 1.7, color: "text.secondary" }}>{PHENOMENA_INTRO}</Typography>
