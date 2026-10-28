@@ -5,7 +5,6 @@ import AladinBackground from "../../features/sky-viewer/AladinBackground";
 import { ALLWISE_HIPS_URL, validateSkyOptions } from "../../features/sky-viewer/aladinDocument";
 import type { SkyPosition } from "../../features/sky-viewer/types";
 import styles from "./sky-test.module.css";
-import { Telescope, Crosshair, RotateCcw, Info } from "lucide-react";
 
 type Region = {
   id: string;
