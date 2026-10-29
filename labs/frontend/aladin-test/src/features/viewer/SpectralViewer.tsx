@@ -3,25 +3,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
-import IconButton from "@mui/material/IconButton";
 import Snackbar from "@mui/material/Snackbar";
-import Typography from "@mui/material/Typography";
-import FiberManualRecord from "@mui/icons-material/FiberManualRecord";
-import { DEMO_IMAGE_URL, H, W } from "@/features/viewer/constants";
-import { FILTERS } from "./engine/filters";
-import { renderLayers } from "@/features/viewer/engine/render";
-import { createLayers, generateScene } from "@/features/viewer/engine/generateScene";
-import { loadImageIntoLayers, loadUrlIntoLayers } from "@/features/viewer/engine/imageLayers";
-import type { Layers } from "@/features/viewer/types";
-import { eter } from "@/theme/theme";
-import ControlPanel from "./components/ControlPanel";
-import { CrosshairIcon } from "../../components/icons/CustomIcons";
-import MenuDrawer from "../menu/MenuDrawer";
+import { CrosshairIcon } from "@/components/icons/CustomIcons";
+import MenuDrawer from "@/features/menu/MenuDrawer";
 import { SvgDefs } from "@/features/phenomena/SvgDefs";
-type Source = "demo" | "upload";
+import ControlPanel from "./components/ControlPanel";
+import ViewerCanvas from "./components/ViewerCanvas";
 import ViewerHeader from "./components/ViewerHeader";
 import ViewerTagline from "./components/ViewerTagline";
+import { DEMO_IMAGE_URL, H, W } from "./constants";
+import { FILTERS } from "./engine/filters";
+import { createLayers, generateScene } from "./engine/generateScene";
+import { loadImageIntoLayers, loadUrlIntoLayers } from "./engine/imageLayers";
+import { renderLayers } from "./engine/render";
+import type { Layers } from "./types";
+
+type Source = "demo" | "upload";
 
 export default function SpectralViewer() {
   // --- Estado de la interfaz ---
@@ -110,12 +107,7 @@ export default function SpectralViewer() {
       <SvgDefs />
 
       {/* IMAGEN: ocupa toda la pantalla y se recorta (cover) en cualquier tamaño */}
-      <canvas
-        ref={canvasRef}
-        width={W}
-        height={H}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-      />
+      <ViewerCanvas canvasRef={canvasRef} />
 
       {/* Sombras suaves para que el texto se lea sobre cualquier imagen */}
       <Box
@@ -141,11 +133,11 @@ export default function SpectralViewer() {
       />
 
       {/* Encabezado */}
-<ViewerHeader
-  filterLabel={`${filter.name} · ${filter.band}`}
-  menuOpen={menuOpen}
-  onOpenMenu={() => openMenu(menuSection ?? 0)}
-/>
+      <ViewerHeader
+        filterLabel={`${filter.name} · ${filter.band}`}
+        menuOpen={menuOpen}
+        onOpenMenu={() => openMenu(menuSection ?? 0)}
+      />
 
       {/* Zona inferior: frase + panel de controles */}
       <Box
@@ -159,27 +151,35 @@ export default function SpectralViewer() {
           display: "flex",
           flexDirection: "column",
           alignItems: { lg: "center" },
-          gap: 2,
           p: { xs: 2, sm: 3 },
           pb: { xs: "max(16px, env(safe-area-inset-bottom))", lg: 5 },
         }}
       >
-<ViewerTagline sourceLabel={sourceLabel} />
-
-        <Box sx={{ pointerEvents: "auto", width: { xs: "100%", lg: "56%" }, maxWidth: { lg: 896 } }}>
-          <ControlPanel
-            filters={FILTERS}
-            current={filterIndex}
-            onSelect={setFilterIndex}
-            inten={inten}
-            gain={gain}
-            onInten={setInten}
-            onGain={setGain}
-            onUpload={handleUpload}
-            onDemo={handleDemo}
-            onHelp={() => openMenu(1)}
-            isDemo={source === "demo"}
-          />
+        <Box
+          sx={{
+            width: { xs: "100%", lg: "56%" },
+            maxWidth: { lg: 896 },
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+          }}
+        >
+          <ViewerTagline sourceLabel={sourceLabel} />
+          <Box sx={{ pointerEvents: "auto" }}>
+            <ControlPanel
+              filters={FILTERS}
+              current={filterIndex}
+              onSelect={setFilterIndex}
+              inten={inten}
+              gain={gain}
+              onInten={setInten}
+              onGain={setGain}
+              onUpload={handleUpload}
+              onDemo={handleDemo}
+              onHelp={() => openMenu(1)}
+              isDemo={source === "demo"}
+            />
+          </Box>
         </Box>
       </Box>
 

@@ -3,13 +3,7 @@ import Typography from "@mui/material/Typography";
 
 export default function ViewerTagline({ sourceLabel }: { sourceLabel: string }) {
   return (
-    <Box
-      sx={{
-        position: { xs: "static", lg: "absolute" },
-        bottom: { lg: 248 },
-        left: { lg: 28 },
-      }}
-    >
+    <Box>
       <Typography
         sx={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)" }}
       >
