@@ -52,28 +52,40 @@ export default function SpectralViewer() {
   }, [filter, inten, gain]);
 
   // Carga la escena demo: usa /public/escena-demo.jpg si existe; si no, genera una simulada.
-  const loadDemo = useCallback(async (layers: Layers, isCancelled: () => boolean = () => false) => {
+  const loadDemo = useCallback(
+  async (
+    layers: Layers,                                                    // La funcion ahora solamente carga la imagen de demostracion, no actualiza el estado de la interfaz//
+    isCancelled: () => boolean = () => false,
+  ) => {
     try {
       await loadUrlIntoLayers(DEMO_IMAGE_URL, layers);
     } catch {
-      if (isCancelled()) return;
+      if (isCancelled()) return false;
       generateScene(layers);
     }
-    if (isCancelled()) return;
+
+    return !isCancelled();
+  },
+  [],
+);
+
+  useEffect(() => {                                 // La actualizacion del estado ocurre cuando termina la operacion asincrona //
+  let cancelled = false;                            // Conservamos la cancelación para evitar actualizaciones después de desmontar el componente //
+
+  const layers = createLayers();
+  layersRef.current = layers;
+
+  void loadDemo(layers, () => cancelled).then((loaded) => {
+    if (!loaded || cancelled) return;
+
     setSource("demo");
     setSceneVersion((v) => v + 1);
-  }, []);
+  });
 
-  // Al montar: crea las capas y carga la escena demo.
-  useEffect(() => {
-    let cancelled = false;
-    const layers = createLayers();
-    layersRef.current = layers;
-    loadDemo(layers, () => cancelled);
-    return () => {
-      cancelled = true;
-    };
-  }, [loadDemo]);
+  return () => {
+    cancelled = true;
+  };
+}, [loadDemo]);
 
   // Cada vez que cambia filtro, sliders o datos: vuelve a dibujar (máx. una vez por frame).
   useEffect(() => {
@@ -94,8 +106,16 @@ export default function SpectralViewer() {
   };
 
   const handleDemo = () => {
-    if (layersRef.current) loadDemo(layersRef.current);
-  };
+  const layers = layersRef.current;             // Mantenemos el comportamiento esperado al volver a cargar la escena demo //
+  if (!layers) return;
+
+  void loadDemo(layers).then((loaded) => {
+    if (!loaded) return;
+
+    setSource("demo");
+    setSceneVersion((v) => v + 1);
+  });
+};
 
   const openMenu = (section: number) => {
     setMenuSection(section);

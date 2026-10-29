@@ -25,11 +25,10 @@ export function useScrollHint(resetKey: unknown) {
   // Recalcula la flecha cuando cambia el alto del contenido (acordeón animándose, resize).
   useEffect(() => {
     if (!bodyEl || !innerEl || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(check);
-    ro.observe(bodyEl);
+    const ro = new ResizeObserver(check);                                        // Notifica cuando observa inicialmente los elementos y cuando cambian sus dimensiones//
+    ro.observe(bodyEl);                                                         // El cálculo de more se ejecuta mediante su callback, en lugar de actualizar el estado directamente durante el efecto //
     ro.observe(innerEl);
-    check();
-    return () => ro.disconnect();
+return () => ro.disconnect();
   }, [bodyEl, innerEl, check]);
 
   const scrollDown = useCallback(() => {
