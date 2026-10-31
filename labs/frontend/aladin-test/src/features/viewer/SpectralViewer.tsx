@@ -1,21 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {useState} from "react";
 import Alert from "@mui/material/Alert";
 import Snackbar from "@mui/material/Snackbar";
 import MenuDrawer from "@/features/menu/MenuDrawer";
 import { SvgDefs } from "@/features/phenomena/SvgDefs";
 import ControlPanel from "./components/ControlPanel";
 import ViewerCanvas from "./components/ViewerCanvas";
-import { DEMO_IMAGE_URL, H, W } from "./constants";
 import { FILTERS } from "./engine/filters";
-import { createLayers, generateScene } from "./engine/generateScene";
-import { loadImageIntoLayers, loadUrlIntoLayers } from "./engine/imageLayers";
-import { renderLayers } from "./engine/render";
-import type { Layers } from "./types";
 import ViewerShell from "./components/ViewerShell";
-
-type Source = "demo" | "upload";
+import { useSpectralScene } from "./hooks/useSpectralScene";
 
 export default function SpectralViewer() {
   // --- Estado de la interfaz ---
@@ -24,73 +18,11 @@ export default function SpectralViewer() {
   const [gain, setGain] = useState(110); // intensidad de luz (%)
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSection, setMenuSection] = useState<number | null>(0);
-  const [source, setSource] = useState<Source>("demo");
-  const [sceneVersion, setSceneVersion] = useState(0); // sube cada vez que cambian los datos
-  const [error, setError] = useState<string | null>(null);
-
-  // --- Datos y lienzo (no provocan render al cambiar) ---
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const layersRef = useRef<Layers | null>(null);
-  const imageRef = useRef<ImageData | null>(null);
 
   const filter = FILTERS[filterIndex];
 
-  // Dibuja la imagen con los valores actuales.
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    const layers = layersRef.current;
-    if (!canvas || !layers) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    if (!imageRef.current) imageRef.current = ctx.createImageData(W, H);
-    renderLayers(ctx, imageRef.current, layers, filter, inten, gain);
-  }, [filter, inten, gain]);
-
-  // Carga la escena demo: usa /public/escena-demo.jpg si existe; si no, genera una simulada.
-  const loadDemo = useCallback(async (layers: Layers, isCancelled: () => boolean = () => false) => {
-    try {
-      await loadUrlIntoLayers(DEMO_IMAGE_URL, layers);
-    } catch {
-      if (isCancelled()) return;
-      generateScene(layers);
-    }
-    if (isCancelled()) return;
-    setSource("demo");
-    setSceneVersion((v) => v + 1);
-  }, []);
-
-  // Al montar: crea las capas y carga la escena demo.
-  useEffect(() => {
-    let cancelled = false;
-    const layers = createLayers();
-    layersRef.current = layers;
-    loadDemo(layers, () => cancelled);
-    return () => {
-      cancelled = true;
-    };
-  }, [loadDemo]);
-
-  // Cada vez que cambia filtro, sliders o datos: vuelve a dibujar (máx. una vez por frame).
-  useEffect(() => {
-    const id = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(id);
-  }, [draw, sceneVersion]);
-
-  const handleUpload = async (file: File) => {
-    if (!layersRef.current) return;
-    try {
-      await loadImageIntoLayers(file, layersRef.current);
-      setSource("upload");
-      setSceneVersion((v) => v + 1);
-    } catch (err) {
-      console.error(err);
-      setError("No se pudo cargar la imagen. Prueba con otro archivo.");
-    }
-  };
-
-  const handleDemo = () => {
-    if (layersRef.current) loadDemo(layersRef.current);
-  };
+    // Escena: carga, dibujo y errores viven en el hook.
+  const { canvasRef, source, error, clearError, upload, reloadDemo } = useSpectralScene(filter, inten, gain);
 
   const openMenu = (section: number) => {
     setMenuSection(section);
@@ -113,8 +45,8 @@ export default function SpectralViewer() {
           gain={gain}
           onInten={setInten}
           onGain={setGain}
-          onUpload={handleUpload}
-          onDemo={handleDemo}
+          onUpload={upload}
+          onDemo={reloadDemo}
           onHelp={() => openMenu(1)}
           isDemo={source === "demo"}
         />
@@ -141,11 +73,11 @@ export default function SpectralViewer() {
             open={error !== null}
             autoHideDuration={5000}
             onClose={(_, reason) => {
-              if (reason !== "clickaway") setError(null);
+              if (reason !== "clickaway") clearError();
             }}
             anchorOrigin={{ vertical: "top", horizontal: "center" }}
           >
-            <Alert severity="error" variant="filled" onClose={() => setError(null)}>
+            <Alert severity="error" variant="filled" onClose={() => clearError()}>
               {error}
             </Alert>
           </Snackbar>
