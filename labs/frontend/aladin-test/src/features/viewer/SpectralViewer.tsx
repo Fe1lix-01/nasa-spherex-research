@@ -2,21 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
 import Snackbar from "@mui/material/Snackbar";
-import { CrosshairIcon } from "@/components/icons/CustomIcons";
 import MenuDrawer from "@/features/menu/MenuDrawer";
 import { SvgDefs } from "@/features/phenomena/SvgDefs";
 import ControlPanel from "./components/ControlPanel";
 import ViewerCanvas from "./components/ViewerCanvas";
-import ViewerHeader from "./components/ViewerHeader";
-import ViewerTagline from "./components/ViewerTagline";
 import { DEMO_IMAGE_URL, H, W } from "./constants";
 import { FILTERS } from "./engine/filters";
 import { createLayers, generateScene } from "./engine/generateScene";
 import { loadImageIntoLayers, loadUrlIntoLayers } from "./engine/imageLayers";
 import { renderLayers } from "./engine/render";
 import type { Layers } from "./types";
+import ViewerShell from "./components/ViewerShell";
 
 type Source = "demo" | "upload";
 
@@ -103,110 +100,61 @@ export default function SpectralViewer() {
   const sourceLabel = source === "demo" ? "Escena demo" : "Imagen subida";
 
   return (
-    <Box component="main" sx={{ position: "relative", height: "100%", width: "100%", overflow: "hidden" }}>
-      <SvgDefs />
+    <ViewerShell
+      // Fondo: hoy es el canvas con filtros; alex podrá pasar aquí el mosaico de Aladin.
+      background={<ViewerCanvas canvasRef={canvasRef} />}
+      // Panel de controles de abajo (filtros, sliders, subir imagen...).
+      controls={
+        <ControlPanel
+          filters={FILTERS}
+          current={filterIndex}
+          onSelect={setFilterIndex}
+          inten={inten}
+          gain={gain}
+          onInten={setInten}
+          onGain={setGain}
+          onUpload={handleUpload}
+          onDemo={handleDemo}
+          onHelp={() => openMenu(1)}
+          isDemo={source === "demo"}
+        />
+      }
+      // Elementos que flotan sobre todo. SvgDefs va aquí porque lo usa el menú
+      // (las ilustraciones de fenómenos), así el marco no depende de esa carpeta.
+      overlays={
+        <>
+          <SvgDefs />
 
-      {/* IMAGEN: ocupa toda la pantalla y se recorta (cover) en cualquier tamaño */}
-      <ViewerCanvas canvasRef={canvasRef} />
+          {/* Menú lateral */}
+          <MenuDrawer
+            open={menuOpen}
+            onClose={() => setMenuOpen(false)}
+            section={menuSection}
+            onSection={setMenuSection}
+            filters={FILTERS}
+            activeFilter={filterIndex}
+            sourceLabel={sourceLabel}
+          />
 
-      {/* Sombras suaves para que el texto se lea sobre cualquier imagen */}
-      <Box
-        sx={{
-          pointerEvents: "none",
-          position: "absolute",
-          inset: 0,
-          background: "linear-gradient(to bottom, rgba(0,0,0,0.5), transparent 30%, transparent 60%, rgba(0,0,0,0.5))",
-        }}
-      />
-
-      {/* Retícula central */}
-      <CrosshairIcon
-        sx={{
-          pointerEvents: "none",
-          position: "absolute",
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-          fontSize: 28,
-          color: "rgba(255,255,255,0.4)",
-        }}
-      />
-
-      {/* Encabezado */}
-      <ViewerHeader
-        filterLabel={`${filter.name} · ${filter.band}`}
-        menuOpen={menuOpen}
-        onOpenMenu={() => openMenu(menuSection ?? 0)}
-      />
-
-      {/* Zona inferior: frase + panel de controles */}
-      <Box
-        sx={{
-          pointerEvents: "none",
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 2,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: { lg: "center" },
-          p: { xs: 2, sm: 3 },
-          pb: { xs: "max(16px, env(safe-area-inset-bottom))", lg: 5 },
-        }}
-      >
-        <Box
-          sx={{
-            width: { xs: "100%", lg: "56%" },
-            maxWidth: { lg: 896 },
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
-          <ViewerTagline sourceLabel={sourceLabel} />
-          <Box sx={{ pointerEvents: "auto" }}>
-            <ControlPanel
-              filters={FILTERS}
-              current={filterIndex}
-              onSelect={setFilterIndex}
-              inten={inten}
-              gain={gain}
-              onInten={setInten}
-              onGain={setGain}
-              onUpload={handleUpload}
-              onDemo={handleDemo}
-              onHelp={() => openMenu(1)}
-              isDemo={source === "demo"}
-            />
-          </Box>
-        </Box>
-      </Box>
-
-      {/* Menú lateral */}
-      <MenuDrawer
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        section={menuSection}
-        onSection={setMenuSection}
-        filters={FILTERS}
-        activeFilter={filterIndex}
-        sourceLabel={sourceLabel}
-      />
-
-      {/* Aviso de error al subir imagen */}
-      <Snackbar
-        open={error !== null}
-        autoHideDuration={5000}
-        onClose={(_, reason) => {
-          if (reason !== "clickaway") setError(null);
-        }}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert severity="error" variant="filled" onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      </Snackbar>
-    </Box>
+          {/* Aviso de error al subir imagen */}
+          <Snackbar
+            open={error !== null}
+            autoHideDuration={5000}
+            onClose={(_, reason) => {
+              if (reason !== "clickaway") setError(null);
+            }}
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          >
+            <Alert severity="error" variant="filled" onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          </Snackbar>
+        </>
+      }
+      filterLabel={`${filter.name} · ${filter.band}`}
+      sourceLabel={sourceLabel}
+      menuOpen={menuOpen}
+      onOpenMenu={() => openMenu(menuSection ?? 0)}
+    />
   );
 }
