@@ -32,3 +32,9 @@ export type FilterDef = {
       ) => void)
     | null;
 };
+
+/**
+ * Opción que el panel muestra como botón. Hoy es un filtro de luz; mañana puede ser una
+ * capa o banda del mosaico. Los `FilterDef` ya cumplen esta forma, así que se pasan tal cual.
+ */
+export type ControlOption = { id: string; name: string };

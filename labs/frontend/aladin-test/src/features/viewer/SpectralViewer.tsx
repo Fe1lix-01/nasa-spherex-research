@@ -41,6 +41,7 @@ export default function SpectralViewer() {
           filters={FILTERS}
           current={filterIndex}
           onSelect={setFilterIndex}
+          intensityDisabled={filter.fn === null} // sin filtro activo no hay nada que aplicar
           inten={inten}
           gain={gain}
           onInten={setInten}

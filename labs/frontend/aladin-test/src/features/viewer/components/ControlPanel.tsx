@@ -1,83 +1,33 @@
 "use client";
 
-import { useId, useRef, type ChangeEvent } from "react";
+import { useRef, type ChangeEvent } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
-import Slider from "@mui/material/Slider";
-import Typography from "@mui/material/Typography";
 import FileUploadOutlined from "@mui/icons-material/FileUploadOutlined";
 import HelpOutlined from "@mui/icons-material/HelpOutlined";
-import type { FilterDef } from "@/features/viewer/types";
 import { eter } from "@/theme/theme";
+import type { ControlOption } from "../types";
+import FilterChips from "./FilterChips";
+import LabeledSlider from "./LabeledSlider";
 
-/* ---------- Slider con etiqueta, valor ámbar y límites (como en Figma) ---------- */
-
-type LabeledSliderProps = {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  disabled?: boolean;
-  onChange: (value: number) => void;
-};
-
-function LabeledSlider({ label, value, min, max, disabled, onChange }: LabeledSliderProps) {
-  const labelId = useId();
-  return (
-    <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <Typography id={labelId} sx={{ fontSize: 15, color: "rgba(255,255,255,0.9)" }}>
-          {label}
-        </Typography>
-        <Typography sx={{ fontSize: 14, fontWeight: 500, color: "primary.main" }}>{value} %</Typography>
-      </Box>
-
-      <Slider
-        aria-labelledby={labelId}
-        value={value}
-        min={min}
-        max={max}
-        disabled={disabled}
-        valueLabelDisplay="off"
-        // MUI entrega number | number[]; aquí siempre es un solo valor.
-        onChange={(_, v) => onChange(Array.isArray(v) ? v[0] : v)}
-        sx={{
-          height: 2,
-          mt: 0.5,
-          "& .MuiSlider-rail": { opacity: 1, backgroundColor: "rgba(255,255,255,0.16)" },
-          "& .MuiSlider-track": { border: "none", height: 2 },
-          "& .MuiSlider-thumb": {
-            width: 14,
-            height: 14,
-            boxShadow: "0 0 0 4px rgba(255,210,76,0.18)",
-            "&::before": { boxShadow: "none" },
-            "&:hover, &.Mui-focusVisible": { boxShadow: "0 0 0 7px rgba(255,210,76,0.28)" },
-          },
-          "&.Mui-disabled": { color: "primary.main", opacity: 0.35 },
-        }}
-      />
-
-      <Box sx={{ display: "flex", justifyContent: "space-between", mt: -0.5 }}>
-        <Typography variant="caption" sx={{ color: "text.disabled" }}>
-          {min} %
-        </Typography>
-        <Typography variant="caption" sx={{ color: "text.disabled" }}>
-          {max} %
-        </Typography>
-      </Box>
-    </Box>
-  );
-}
-
-/* ---------- Panel ---------- */
+// Estilo de los botones discretos (Ayuda, Escena demo). Está fuera del componente
+// para que no se vuelva a crear en cada render.
+const quietButton = {
+  minWidth: 0,
+  fontSize: { xs: 13, sm: 14 },
+  color: "rgba(255,255,255,0.6)",
+  "&:hover": { color: "#fff", backgroundColor: "transparent" },
+} as const;
 
 type Props = {
-  filters: FilterDef[];
+  /** Opciones que se muestran como chips (hoy los filtros de luz). */
+  filters: ControlOption[];
   current: number;
   onSelect: (index: number) => void;
+  /** Desactiva el slider "Aplicación del filtro" (p. ej. cuando no hay filtro activo). */
+  intensityDisabled: boolean;
   inten: number;
   gain: number;
   onInten: (value: number) => void;
@@ -92,6 +42,7 @@ export default function ControlPanel({
   filters,
   current,
   onSelect,
+  intensityDisabled,
   inten,
   gain,
   onInten,
@@ -102,20 +53,12 @@ export default function ControlPanel({
   isDemo,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const hasFilter = filters[current].fn !== null;
 
   const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) onUpload(file);
     e.target.value = ""; // permite subir el mismo archivo otra vez
   };
-
-  const quietButton = {
-    minWidth: 0,
-    fontSize: { xs: 13, sm: 14 },
-    color: "rgba(255,255,255,0.6)",
-    "&:hover": { color: "#fff", backgroundColor: "transparent" },
-  } as const;
 
   return (
     <Paper
@@ -132,59 +75,7 @@ export default function ControlPanel({
         p: { xs: 2.5, sm: 3 },
       }}
     >
-      {/* Filtros de luz (uno activo a la vez, con scroll horizontal en pantallas pequeñas) */}
-      <Box
-        role="group"
-        aria-label="Filtros de luz"
-        sx={{
-          display: "flex",
-          gap: 1.25,
-          overflowX: "auto",
-          mx: -0.5,
-          px: 0.5,
-          pb: 0.5,
-          scrollbarWidth: "none",
-          "&::-webkit-scrollbar": { display: "none" },
-        }}
-      >
-        {filters.map((f, i) => {
-          const on = i === current;
-          return (
-            <Chip
-              key={f.id}
-              label={f.name}
-              clickable
-              aria-pressed={on}
-              onClick={() => onSelect(i)}
-              variant={on ? "filled" : "outlined"}
-              sx={{
-                flexShrink: 0,
-                height: 44,
-                borderRadius: "999px",
-                fontSize: 15,
-                "& .MuiChip-label": { px: 2.5 },
-                ...(on
-                  ? {
-                      backgroundColor: eter.accent,
-                      borderColor: eter.accent,
-                      color: "#000",
-                      fontWeight: 500,
-                      "&:hover": { backgroundColor: eter.accent },
-                    }
-                  : {
-                      borderColor: eter.lineStrong,
-                      color: "rgba(255,255,255,0.6)",
-                      "&:hover": {
-                        backgroundColor: "transparent",
-                        borderColor: "rgba(255,255,255,0.3)",
-                        color: "#fff",
-                      },
-                    }),
-              }}
-            />
-          );
-        })}
-      </Box>
+      <FilterChips options={filters} current={current} onSelect={onSelect} />
 
       <Divider sx={{ my: 2.5 }} />
 
@@ -201,7 +92,7 @@ export default function ControlPanel({
           value={inten}
           min={0}
           max={100}
-          disabled={!hasFilter}
+          disabled={intensityDisabled}
           onChange={onInten}
         />
         <LabeledSlider label="Intensidad de luz" value={gain} min={10} max={300} onChange={onGain} />
@@ -241,6 +132,8 @@ export default function ControlPanel({
         <Button
           color="inherit"
           onClick={onDemo}
+          // Indica a lectores de pantalla si la escena demo es la que está activa.
+          aria-pressed={isDemo}
           startIcon={
             <Box
               component="span"
