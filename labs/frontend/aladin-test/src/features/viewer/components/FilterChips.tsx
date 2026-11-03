@@ -49,16 +49,16 @@ export default function FilterChips({ options, current, onSelect }: Props) {
                 ? {
                     backgroundColor: eter.accent,
                     borderColor: eter.accent,
-                    color: "#000",
+                    color: eter.onAccent,
                     fontWeight: 500,
                     "&:hover": { backgroundColor: eter.accent },
                   }
                 : {
                     borderColor: eter.lineStrong,
-                    color: "rgba(255,255,255,0.6)",
+                    color: eter.textMuted,
                     "&:hover": {
                       backgroundColor: "transparent",
-                      borderColor: "rgba(255,255,255,0.3)",
+                      borderColor: eter.lineHover,
                       color: "#fff",
                     },
                   }),

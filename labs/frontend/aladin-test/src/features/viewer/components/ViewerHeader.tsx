@@ -39,7 +39,7 @@ export default function ViewerHeader({ filterLabel, menuOpen, onOpenMenu }: Prop
             </Typography>
             <Box sx={{ lineHeight: 1.25 }}>
               <Typography
-                sx={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)" }}
+                sx={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: eter.textFaint }}
               >
                 Visor espectral
               </Typography>
@@ -56,7 +56,7 @@ export default function ViewerHeader({ filterLabel, menuOpen, onOpenMenu }: Prop
               height: 34,
               color: "#fff",
               borderColor: eter.lineStrong,
-              backgroundColor: "rgba(0,0,0,0.35)",
+              backgroundColor: eter.glass,
               backdropFilter: "blur(8px)",
               "& .MuiChip-icon": { fontSize: 8, ml: 1.5, mr: -0.5, color: eter.accent },
               "& .MuiChip-label": { fontSize: 14 },
@@ -75,7 +75,7 @@ export default function ViewerHeader({ filterLabel, menuOpen, onOpenMenu }: Prop
             height: { xs: 48, sm: 56 },
             borderRadius: "16px",
             border: `1px solid ${eter.lineStrong}`,
-            backgroundColor: "rgba(0,0,0,0.35)",
+            backgroundColor: eter.glass,
             backdropFilter: "blur(8px)",
             "&:hover": { backgroundColor: "rgba(255,255,255,0.1)" },
           }}

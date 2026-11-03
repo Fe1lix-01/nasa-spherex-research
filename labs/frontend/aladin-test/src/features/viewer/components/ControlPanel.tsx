@@ -17,7 +17,7 @@ import LabeledSlider from "./LabeledSlider";
 const quietButton = {
   minWidth: 0,
   fontSize: { xs: 13, sm: 14 },
-  color: "rgba(255,255,255,0.6)",
+  color: eter.textMuted,
   "&:hover": { color: "#fff", backgroundColor: "transparent" },
 } as const;
 
@@ -68,7 +68,7 @@ export default function ControlPanel({
       sx={{
         borderRadius: "28px",
         border: `1px solid ${eter.line}`,
-        backgroundColor: "rgba(10,15,22,0.9)",
+        backgroundColor: eter.panelGlass,
         backgroundImage: "none",
         backdropFilter: "blur(24px)",
         boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
@@ -122,7 +122,7 @@ export default function ControlPanel({
             borderColor: eter.lineStrong,
             fontSize: { xs: 13, sm: 14 },
             px: { xs: 1.5, sm: 2 },
-            "&:hover": { borderColor: "rgba(255,255,255,0.3)", backgroundColor: "rgba(255,255,255,0.05)" },
+            "&:hover": { borderColor: eter.lineHover, backgroundColor: eter.hoverFill },
           }}
         >
           Subir imagen

@@ -4,6 +4,7 @@ import { useId } from "react";
 import Box from "@mui/material/Box";
 import Slider from "@mui/material/Slider";
 import Typography from "@mui/material/Typography";
+import { eter } from "@/theme/theme";
 
 type Props = {
   label: string;
@@ -40,14 +41,14 @@ export default function LabeledSlider({ label, value, min, max, disabled, onChan
         sx={{
           height: 2,
           mt: 0.5,
-          "& .MuiSlider-rail": { opacity: 1, backgroundColor: "rgba(255,255,255,0.16)" },
+          "& .MuiSlider-rail": { opacity: 1, backgroundColor: eter.rail },
           "& .MuiSlider-track": { border: "none", height: 2 },
           "& .MuiSlider-thumb": {
             width: 14,
             height: 14,
-            boxShadow: "0 0 0 4px rgba(255,210,76,0.18)",
+            boxShadow: '0 0 0 4px ${eter.accentGlow}',
             "&::before": { boxShadow: "none" },
-            "&:hover, &.Mui-focusVisible": { boxShadow: "0 0 0 7px rgba(255,210,76,0.28)" },
+            "&:hover, &.Mui-focusVisible": { boxShadow: '0 0 0 7px ${eter.accentGlowStrong}' },
           },
           "&.Mui-disabled": { color: "primary.main", opacity: 0.35 },
         }}

@@ -1,11 +1,12 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
+import { eter } from "@/theme/theme";
 
 export default function ViewerTagline({ sourceLabel }: { sourceLabel: string }) {
   return (
     <Box>
       <Typography
-        sx={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)" }}
+        sx={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.14em", color: eter.textFaint }}
       >
         Exploración infrarroja
       </Typography>
