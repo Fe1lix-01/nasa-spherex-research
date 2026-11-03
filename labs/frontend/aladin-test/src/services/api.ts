@@ -1,4 +1,4 @@
-import type { Band, Epoch, ObjectsResponse } from "@/contracts";
+import type { Band, Epoch, Frame, ObjectsResponse } from "@/contracts";
 import type { SkyDataService } from "./types";
 
 // URL base del back. Se define en .env.local como NEXT_PUBLIC_API_URL.
@@ -15,4 +15,5 @@ export const apiService: SkyDataService = {
   getEpochs: () => getJson<Epoch[]>("/epochs"),
   getBands: () => getJson<Band[]>("/bands"),
   getObjects: () => getJson<ObjectsResponse>("/objects"),
+  getFrames: () => getJson<Frame[]>("/frames"),
 };

@@ -1,4 +1,4 @@
-import type { Band, Epoch, ObjectsResponse } from "@/contracts";
+import type { Band, Epoch, Frame, ObjectsResponse } from "@/contracts";
 
 /**
  * Lo que el frontend necesita pedirle al back. La versión simulada (mock) y la real (api)
@@ -8,4 +8,5 @@ export interface SkyDataService {
   getEpochs(): Promise<Epoch[]>;
   getBands(): Promise<Band[]>;
   getObjects(): Promise<ObjectsResponse>;
+  getFrames(): Promise<Frame[]>;
 }
