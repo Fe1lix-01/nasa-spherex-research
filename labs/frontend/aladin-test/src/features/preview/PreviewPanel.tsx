@@ -7,6 +7,10 @@ import type { Frame } from "@/contracts";
 import ControlPanel from "@/features/viewer/components/ControlPanel";
 import ViewerCanvas from "@/features/viewer/components/ViewerCanvas";
 import ViewerShell from "@/features/viewer/components/ViewerShell";
+import MenuDrawer from "@/features/menu/MenuDrawer";
+import { SvgDefs } from "@/features/phenomena/SvgDefs";
+import Alert from "@mui/material/Alert";
+import Snackbar from "@mui/material/Snackbar";
 import { FILTERS } from "@/features/viewer/engine/filters";
 import { useSpectralScene } from "@/features/viewer/hooks/useSpectralScene";
 import { skyData } from "@/services";
@@ -26,6 +30,8 @@ export default function PreviewPanel() {
   const [gain, setGain] = useState(110);
   const [marker, setMarker] = useState<Marker | null>(null);
   const [outside, setOutside] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuSection, setMenuSection] = useState<number | null>(0);
 
   useEffect(() => {
     skyData
@@ -78,15 +84,47 @@ export default function PreviewPanel() {
               upload(file);
             }}
             onDemo={() => {}}
-            onHelp={() => {}}
+            onHelp={() => {
+              setMenuSection(1);
+              setMenuOpen(true);
+            }}
             isDemo={false}
           />
         </Box>
       }
       filterLabel={`${filter.name} · ${filter.band}`}
       sourceLabel="Vista previa · Imagen SPHEREx 2025W19"
-      menuOpen={false}
-      onOpenMenu={() => {}}
+      menuOpen={menuOpen}
+      onOpenMenu={() => {
+        setMenuSection(menuSection ?? 0);
+        setMenuOpen(true);
+      }}
+      overlays={
+        <>
+          <SvgDefs />
+          <MenuDrawer
+            open={menuOpen}
+            onClose={() => setMenuOpen(false)}
+            section={menuSection}
+            onSection={setMenuSection}
+            filters={FILTERS}
+            activeFilter={filterIndex}
+            sourceLabel="Vista previa"
+          />
+          <Snackbar
+            open={error !== null}
+            autoHideDuration={5000}
+            onClose={(_, reason) => {
+              if (reason !== "clickaway") clearError();
+            }}
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          >
+            <Alert severity="error" variant="filled" onClose={() => clearError()}>
+              {error}
+            </Alert>
+          </Snackbar>
+        </>
+      }
     />
   );
 }
