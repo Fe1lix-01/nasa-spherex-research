@@ -4,21 +4,28 @@ import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import type { Frame } from "@/contracts";
+import ControlPanel from "@/features/viewer/components/ControlPanel";
+import ViewerCanvas from "@/features/viewer/components/ViewerCanvas";
 import ViewerShell from "@/features/viewer/components/ViewerShell";
+import { FILTERS } from "@/features/viewer/engine/filters";
+import { useSpectralScene } from "@/features/viewer/hooks/useSpectralScene";
 import { skyData } from "@/services";
 import CoordinateForm from "./components/CoordinateForm";
-import FrameView, { type Marker } from "./components/FrameView";
+import MarkerLayer, { type Marker } from "./components/MarkerLayer";
 import { skyToImage } from "./projection";
 
 /**
- * Vista previa de movimiento, dentro del mismo marco visual de ÉTER (ViewerShell).
- * La imagen va de fondo y el formulario de coordenadas en el panel de controles.
+ * Vista previa de movimiento dentro del visor de ÉTER: mismo canvas, mismos filtros y
+ * controles. La imagen de la época va como escena, y los objetos se marcan por coordenadas.
  */
 export default function PreviewPanel() {
   const [frames, setFrames] = useState<Frame[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [filterIndex, setFilterIndex] = useState(0);
+  const [inten, setInten] = useState(72);
+  const [gain, setGain] = useState(110);
   const [marker, setMarker] = useState<Marker | null>(null);
   const [outside, setOutside] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     skyData
@@ -27,9 +34,10 @@ export default function PreviewPanel() {
       .catch(() => setLoadError("No se pudieron cargar las imágenes."));
   }, []);
 
-  const message = loadError ?? (!frames ? "Cargando imágenes…" : null);
   // Por ahora usamos la primera época; la animación recorrerá todas.
   const frame = frames?.[0] ?? null;
+  const filter = FILTERS[filterIndex];
+  const { canvasRef, error, clearError, upload } = useSpectralScene(filter, inten, gain, frame?.imageUrl);
 
   const search = (ra: number, dec: number) => {
     if (!frame) return;
@@ -37,11 +45,18 @@ export default function PreviewPanel() {
     setMarker({ id: `${ra},${dec}`, label: `${ra.toFixed(4)}, ${dec.toFixed(4)}`, ra, dec });
   };
 
+  const message = loadError ?? (!frame ? "Cargando imágenes…" : error);
+
   return (
     <ViewerShell
-      background={frame ? <FrameView frame={frame} markers={marker ? [marker] : []} /> : <Box sx={{ position: "absolute", inset: 0, bgcolor: "#000" }} />}
+      background={
+        <>
+          <ViewerCanvas canvasRef={canvasRef} />
+          {frame && <MarkerLayer frame={frame} markers={marker ? [marker] : []} />}
+        </>
+      }
       controls={
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {message && <Typography sx={{ color: "#fff" }}>{message}</Typography>}
           {frame && <CoordinateForm onSearch={search} />}
           {outside && (
@@ -49,10 +64,27 @@ export default function PreviewPanel() {
               Ese punto está fuera de esta imagen.
             </Typography>
           )}
+          <ControlPanel
+            filters={FILTERS}
+            current={filterIndex}
+            onSelect={setFilterIndex}
+            intensityDisabled={filter.fn === null}
+            inten={inten}
+            gain={gain}
+            onInten={setInten}
+            onGain={setGain}
+            onUpload={(file) => {
+              clearError();
+              upload(file);
+            }}
+            onDemo={() => {}}
+            onHelp={() => {}}
+            isDemo={false}
+          />
         </Box>
       }
-      filterLabel="Vista previa · Época 1"
-      sourceLabel="Imagen SPHEREx · 2025W19"
+      filterLabel={`${filter.name} · ${filter.band}`}
+      sourceLabel="Vista previa · Imagen SPHEREx 2025W19"
       menuOpen={false}
       onOpenMenu={() => {}}
     />
