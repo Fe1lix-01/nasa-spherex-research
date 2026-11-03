@@ -1,5 +1,6 @@
-import type { Band, ObjectsResponse } from "@/contracts";
+import type { Band, Frame, ObjectsResponse } from "@/contracts";
 import epochsJson from "@/mocks/epochs.json";
+import framesJson from "@/mocks/frames.json";
 import objectsJson from "@/mocks/objects.json";
 import type { SkyDataService } from "./types";
 
@@ -38,5 +39,9 @@ export const mockService: SkyDataService = {
     // TypeScript infiere "kind" como string al leer el JSON; aquí lo declaramos como
     // ObjectKind. Cuando llegue el back real conviene validar la forma con Zod.
     return objectsJson as unknown as ObjectsResponse;
+  },
+  async getFrames() {
+    await delay(NETWORK_DELAY_MS);
+    return framesJson as Frame[];
   },
 };

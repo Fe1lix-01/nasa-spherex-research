@@ -58,3 +58,12 @@ export type ObjectsResponse = {
   region: SkyRegion;
   objects: MovingObject[];
 };
+
+/** Una imagen de una época, sobre la que se dibujan los objetos. */
+export type Frame = {
+  epochId: string; // "e1", "e2", "e3"
+  imageUrl: string; // imagen ya convertida a PNG, p. ej. "/frames/epoca1_D6.png"
+  ra: number; // centro de la imagen, en grados (ICRS)
+  dec: number;
+  fovDeg: number; // ancho de la imagen, en grados (la imagen es cuadrada)
+};
