@@ -1,0 +1,31 @@
+{
+  "simulated": true,
+  "region": { "ra": 83.82, "dec": -5.39, "fovDeg": 2 },
+  "objects": [
+    {
+      "id": "obj-001",
+      "kind": "asteroid",
+      "positions": [
+        { "epochId": "e1", "ra": 83.4, "dec": -5.1 },
+        { "epochId": "e2", "ra": 83.62, "dec": -5.22 },
+        { "epochId": "e3", "ra": 83.85, "dec": -5.35 }
+      ],
+      "prediction": {
+        "atDate": "2027-06-01",
+        "ra": 84.08,
+        "dec": -5.48,
+        "uncertaintyArcsec": 45,
+        "confidence": 0.8
+      }
+    },
+    {
+      "id": "obj-002",
+      "kind": "brown_dwarf",
+      "name": "Candidato A",
+      "positions": [
+        { "epochId": "e1", "ra": 84.1, "dec": -5.6 },
+        { "epochId": "e3", "ra": 84.12, "dec": -5.61 }
+      ]
+    }
+  ]
+}
