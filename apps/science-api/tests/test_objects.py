@@ -1,11 +1,15 @@
+# Herramientas para definir y ejecutar pruebas.
 import pytest
+
+# Permite enviar solicitudes a la aplicación
+# sin iniciar Uvicorn ni abrir un navegador.
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services import observations as observations_service
 from app.services.objects import list_objects
 
-
+# Cliente HTTP de prueba conectado a nuestra aplicación.
 client = TestClient(app)
 
 
