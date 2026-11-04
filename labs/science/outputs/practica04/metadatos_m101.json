@@ -1,0 +1,30 @@
+{
+  "source_file": "mosaic_cube.fits",
+  "method": "feature minus median of nearby continuum planes; quick-look only",
+  "feature_plane": 63,
+  "feature_wavelength_um": 3.2929999828338623,
+  "continuum_planes": [
+    61,
+    62,
+    64,
+    65
+  ],
+  "continuum_wavelengths_um": [
+    3.118000030517578,
+    3.2039999961853027,
+    3.382999897003174,
+    3.4760000705718994
+  ],
+  "shape_yx": [
+    201,
+    201
+  ],
+  "units": "MJy/sr",
+  "excluded_flag_bits": [
+    1
+  ],
+  "outliers_excluded": false,
+  "min_valid_continuum_planes": 3,
+  "valid_pixel_count": 40401,
+  "caution": "Not a calibrated PAH measurement. Not a time-domain image difference."
+}

@@ -1,0 +1,215 @@
+/* PROJECT MORLEY — estilos del visor astronómico */
+.page {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #040712;
+  color: #f8f8ff;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Encabezado que ocupa su propio espacio */
+.header {
+  flex: 0 0 auto;
+  min-height: 94px;
+  box-sizing: border-box;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  background: #0a0e1c;
+  border-bottom: 1px solid #252c48;
+  z-index: 2;
+}
+.title {
+  font-size: clamp(23px, 2.1vw, 31px);
+  font-weight: 750;
+  line-height: 1.1;
+  margin: 0;
+  letter-spacing: 0.035em;
+}
+.subtitle {
+  font-size: 12px;
+  margin: 7px 0 0;
+  color: #adb6d4;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.regionSelect {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.select {
+  height: 39px;
+  max-width: min(270px, 75vw);
+
+  padding: 0 42px 0 40px;
+
+  border-radius: 9px;
+  border: 1px solid #3b4567;
+
+  background: #171e33;
+  color: #fafaff;
+
+  font-size: 13px;
+  cursor: pointer;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  transition: border-color 0.2s ease,
+              background 0.2s ease;
+}
+
+.select:hover {
+  border-color: #baa3ff;
+  background: #202842;
+}
+
+.regionIcon {
+  position: absolute;
+  left: 13px;
+
+  width: 17px;
+  height: 17px;
+
+  color: #baa3ff;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.regionSelect::after {
+  content: "";
+
+  position: absolute;
+  right: 16px;
+
+  width: 8px;
+  height: 8px;
+
+  border-right: 2px solid #baa3ff;
+  border-bottom: 2px solid #baa3ff;
+
+  transform: translateY(-25%) rotate(45deg);
+
+  pointer-events: none;
+}
+
+.select:focus-visible {
+  outline: 2px solid #baa3ff;
+  outline-offset: 2px;
+}
+
+.button {
+  height: 39px;
+  padding: 0 14px;
+  border: 1px solid #3b4567;
+  border-radius: 9px;
+  background: #171e33;
+  color: #fafaff;
+  font-size: 13px;
+  cursor: pointer;
+}
+.button:hover, .select:hover { border-color: #9878e3; }
+
+/* El mosaico llena toda la altura que deja libre el encabezado */
+.viewer {
+  position: relative;
+  flex: 1 1 0%;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  background: #03050a;
+}
+.sky {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.attribution {
+  position: absolute;
+  right: 18px;
+  bottom: 15px;
+  z-index: 2;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ffffff30;
+  background: #090d1ccc;
+  color: #cdd5ee;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+/* Paneles flotantes: Coordenadas e Información */
+.panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 3;
+  box-sizing: border-box;
+  width: min(350px, calc(100% - 40px));
+  max-height: calc(100% - 40px);
+  padding: 20px;
+  overflow-y: auto;
+  border: 1px solid #616b91;
+  border-radius: 16px;
+  background: #11182aef;
+  box-shadow: 0 18px 55px #0009;
+  color: #f5f5fc;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.panelHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.field {
+  display: grid;
+  gap: 5px;
+  margin-top: 11px;
+  color: #c7d0ec;
+}
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #515e80;
+  border-radius: 8px;
+  background: #1a2339;
+  color: white;
+}
+.primary {
+  width: 100%;
+  margin-top: 15px;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #8566dc;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .header { padding: 12px 16px; }
+  .controls { width: 100%; }
+  .select { max-width: 100%; }
+}

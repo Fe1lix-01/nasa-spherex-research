@@ -1,0 +1,6 @@
+/*
+  Tailwind sigue disponible para el resto del proyecto.
+  Los componentes de ÉTER usan solo MUI (colores, fuente y fondo viven en src/theme/theme.ts),
+  así que aquí no se definen estilos de body ni fuentes: los resuelve CssBaseline.
+*/
+@import "tailwindcss";
