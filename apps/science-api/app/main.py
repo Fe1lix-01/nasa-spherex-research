@@ -2,7 +2,8 @@ from fastapi import FastAPI
 
 # Importamos los tres módulos de rutas.
 # Esta importación debe aparecer una sola vez.
-from app.routers import health, observations, objects
+from app.routers import health, observations, objects, irsa
+
                                             
 # Creamos la aplicación principal.
 # Estos datos aparecen en la documentación de Swagger     
@@ -19,3 +20,5 @@ app.include_router(observations.router)
 # Sin esta línea, las rutas de Objects no existirían
 # en la aplicación y devolverían 404.
 app.include_router(objects.router)
+
+app.include_router(irsa.router)
