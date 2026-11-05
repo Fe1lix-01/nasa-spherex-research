@@ -13,6 +13,15 @@ type Props = {
 };
 
 export default function ViewerHeader({ filterLabel, menuOpen, onOpenMenu }: Props) {
+  
+  // Movimiento de cada línea al abrir el menú: la de arriba y la de abajo giran
+// hacia el centro formando una X, y la del medio desaparece.
+const OPEN_LINE_STYLE = [
+  { transform: "translateY(6px) rotate(45deg)" },
+  { opacity: 0 },
+  { transform: "translateY(-6px) rotate(-45deg)" },
+];
+  
   return (
       <Box
         component="header"
@@ -80,9 +89,25 @@ export default function ViewerHeader({ filterLabel, menuOpen, onOpenMenu }: Prop
             "&:hover": { backgroundColor: "rgba(255,255,255,0.1)" },
           }}
         >
-          <Box component="span" sx={{ display: "grid", gap: "6px" }}>
+                    {/* Las tres líneas se superponen para poder girarlas hacia una X */}
+          <Box component="span" sx={{ position: "relative", width: 20, height: 13 }}>
             {[0, 1, 2].map((n) => (
-              <Box key={n} component="span" sx={{ display: "block", width: 20, height: "1px", backgroundColor: "#fff" }} />
+              <Box
+                key={n}
+                component="span"
+                sx={{
+                  position: "absolute",
+                  left: 0,
+                  top: n * 6,
+                  width: 20,
+                  height: "1px",
+                  backgroundColor: "#fff",
+                  transition: "transform 350ms ease, opacity 200ms ease",
+                  // Si el usuario pide menos movimiento, el cambio es instantáneo.
+                  "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+                  ...(menuOpen ? OPEN_LINE_STYLE[n] : null),
+                }}
+              />
             ))}
           </Box>
         </IconButton>
