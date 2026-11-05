@@ -46,9 +46,9 @@ export default function LabeledSlider({ label, value, min, max, disabled, onChan
           "& .MuiSlider-thumb": {
             width: 14,
             height: 14,
-            boxShadow: '0 0 0 4px ${eter.accentGlow}',
+            boxShadow: `0 0 0 4px ${eter.accentGlow}`,
             "&::before": { boxShadow: "none" },
-            "&:hover, &.Mui-focusVisible": { boxShadow: '0 0 0 7px ${eter.accentGlowStrong}' },
+            "&:hover, &.Mui-focusVisible": { boxShadow: `0 0 0 7px ${eter.accentGlowStrong}` },
           },
           "&.Mui-disabled": { color: "primary.main", opacity: 0.35 },
         }}
