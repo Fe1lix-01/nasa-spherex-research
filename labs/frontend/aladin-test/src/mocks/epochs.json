@@ -1,0 +1,5 @@
+[
+  { "id": "e1", "observedAt": "2025-06-01", "label": "Época 1" },
+  { "id": "e2", "observedAt": "2025-12-01", "label": "Época 2" },
+  { "id": "e3", "observedAt": "2026-06-01", "label": "Época 3" }
+]
