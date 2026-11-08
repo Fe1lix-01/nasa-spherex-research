@@ -1,6 +1,8 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware        ## Compenente que configura la comunicacion entre el navegador y la API ##
-from app.routers import health, observations, objects
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.routers import health, observations, objects, irsa
+
 
 app = FastAPI(
     title="ETER API",
@@ -8,17 +10,20 @@ app = FastAPI(
     version="0.1.0",
 )
 
-app.add_middleware(                       ## Compenente intermediario de solicitudes  y respuestas antes de llegar al endpoint o  regresen al cliente ##
+app.add_middleware(                   ## Configuracion de CORS que permite la comunicacion de frontend ##
     CORSMiddleware,
-    allow_origins=[                      ## Origines permitidos durante el desarrollo ##
-        "http://localhost:3000",         ## Interfaz que ve el usuario ##
-        "http://127.0.0.1:3000",         ## API que entrega los datos ##
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
     ],
-    allow_credentials=True,              ## Permite solicitudes con credenciales ##
-    allow_methods=["*"],                 ## Perminte todos los metodos HTTPS mendiante CORS ##
-    allow_headers=["*"],                 ## Permite que las solicitudes incluyan distintos encabezados HTTP ##
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
+
+# Registro de los routers de la API.
 app.include_router(health.router)
 app.include_router(observations.router)
 app.include_router(objects.router)
+app.include_router(irsa.router)
