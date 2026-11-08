@@ -1,10 +1,3 @@
-/* Registrar el ángulo como propiedad animable: sin esto, CSS no puede animar un gradiente. */
-@property --ab-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
 .animated-button {
   --ab-line: #ffffff;
   --ab-base: #2a313b;
@@ -27,7 +20,7 @@
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s ease;
 }
 
-/* Borde de 1 px: un gradiente cónico con un tramo más claro que gira alrededor. */
+/* Borde de 1 px con un destello centrado en --ab-angle (lo actualiza el script). */
 .animated-button::before {
   content: "";
   position: absolute;
@@ -36,17 +29,16 @@
   border-radius: inherit;
   padding: 1px;
   background: conic-gradient(
-    from var(--ab-angle),
-    var(--ab-base) 0deg,
-    var(--ab-base) 270deg,
-    var(--ab-line) 330deg,
-    var(--ab-base) 360deg
+    from var(--ab-angle, 0deg),
+    var(--ab-line) 0deg,
+    var(--ab-base) 60deg,
+    var(--ab-base) 300deg,
+    var(--ab-line) 360deg
   );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   pointer-events: none;
-  animation: ab-spin 6s linear infinite;
 }
 
 .animated-button__label {
@@ -73,16 +65,4 @@
 .animated-button:disabled {
   opacity: 0.5;
   cursor: default;
-}
-
-@keyframes ab-spin {
-  to {
-    --ab-angle: 360deg;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animated-button::before {
-    animation: none;
-  }
 }
