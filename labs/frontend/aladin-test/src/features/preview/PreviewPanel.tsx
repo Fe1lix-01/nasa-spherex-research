@@ -11,6 +11,8 @@ import ViewerShell from "@/features/viewer/components/ViewerShell";
 import MenuDrawer from "@/features/menu/MenuDrawer";
 import { SvgDefs } from "@/features/phenomena/SvgDefs";
 import { FILTERS } from "@/features/viewer/engine/filters";
+import AladinBackground from "@/features/sky-viewer/AladinBackground";
+import { ALLWISE_HIPS_URL } from "@/features/sky-viewer/aladinDocument";
 import { skyData } from "@/services";
 import MarkerLayer, { type Marker } from "./components/MarkerLayer";
 import PreviewCard from "./components/PreviewCard";
@@ -23,20 +25,30 @@ import PreviewCredit from "./components/PreviewCredit";
 import EpochLayer from "./components/EpochLayer";
 import PlaybackBar from "./components/PlaybackBar";
 import TrailLayer from "./components/TrailLayer";
+import ModeToggle, { type ViewMode } from "./components/ModeToggle";
+import SkyStage from "./components/SkyStage";
+import { skyCssFilter } from "./components/skyFilters";
 import { useEpochClock } from "./hooks/useEpochClock";
 import { positionAt, trackPoints } from "./trajectory";
+
+/** A dónde mira el mosaico. `nonce` cambia en cada búsqueda para volver a ir aunque sea al mismo punto. */
+type SkyTarget = { raDeg: number; decDeg: number; fovDeg: number; nonce: number };
+const ALL_SKY: SkyTarget = { raDeg: 0, decDeg: 0, fovDeg: 360, nonce: 0 };
+const CLOSE_UP_FOV_DEG = 1.5; // campo al ir a un candidato o a unas coordenadas
+const TEST_LABEL = "Prueba"; // nombre de la zona con imágenes simuladas
 
 /**
  * Opacidad de la capa de la época i en el instante t. La primera siempre está debajo y
  * opaca; cada una de las siguientes aparece de forma gradual cuando t llega a su época.
- * Así, entre dos épocas hay un fundido continuo en lugar de un cambio brusco.
  */
 const layerOpacity = (i: number, t: number) => (i === 0 ? 1 : Math.min(Math.max(t - (i - 1), 0), 1));
 
 /**
- * Vista previa de movimiento dentro del visor de ÉTER: mismo canvas, mismos filtros y
- * controles. Las imágenes de las épocas van apiladas y la animación las recorre; el objeto
- * elegido se desliza por su trayectoria dejando un rastro punteado.
+ * Vista previa de movimiento dentro del visor de ÉTER. Tiene dos modos:
+ *  - Mosaico del cielo: el mapa interactivo de Aladin (AllWISE como referencia). Las imágenes
+ *    simuladas ("Prueba") se pintan encima, en la zona del cielo donde están los objetos de
+ *    prueba, con los mismos filtros, marcador, rastro y animación.
+ *  - Épocas simuladas: las imágenes de prueba solas, a pantalla completa.
  */
 export default function PreviewPanel() {
   const [frames, setFrames] = useState<Frame[] | null>(null);
@@ -54,6 +66,10 @@ export default function PreviewPanel() {
   const [menuSection, setMenuSection] = useState<number | null>(0);
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [revision, setRevision] = useState(0);
+  const [mode, setMode] = useState<ViewMode>("epochs");
+  const [skyTarget, setSkyTarget] = useState<SkyTarget>(ALL_SKY);
+  const [skyOpened, setSkyOpened] = useState(false); // el mapa se crea la primera vez que se entra
+  const [skyFailed, setSkyFailed] = useState(false); // si falla, se usa el visor básico de Felix
 
   useEffect(() => {
     Promise.all([skyData.getFrames(), skyData.getObjects(), skyData.getEpochs()])
@@ -68,11 +84,26 @@ export default function PreviewPanel() {
   const clock = useEpochClock(frames?.length ?? 0, 3);
   const frame = frames?.[0] ?? null;
   const filter = FILTERS[filterIndex];
+  const skyMode = mode === "sky";
+
+  const changeMode = (next: ViewMode) => {
+    if (next === "sky") setSkyOpened(true);
+    setMode(next);
+  };
+
+  const goSky = (raDeg: number, decDeg: number, fovDeg: number) =>
+    setSkyTarget((s) => ({ raDeg, decDeg, fovDeg, nonce: s.nonce + 1 }));
+
+  const onSkyFail = (message: string) => {
+    setSkyFailed(true);
+    setSceneError(`${message} Se usa el visor básico de Aladin.`);
+  };
 
   const search = (ra: number, dec: number) => {
     if (!frame) return;
     setOutside(skyToImage(ra, dec, frame) === null);
     setMarker({ id: `${ra},${dec}`, label: `${ra.toFixed(4)}, ${dec.toFixed(4)}`, ra, dec });
+    goSky(ra, dec, CLOSE_UP_FOV_DEG);
     // Si las coordenadas caen cerca de un candidato (0.5°), abrimos su recuadro.
     setSelected(matchObject(ra, dec, objects, 0.5));
   };
@@ -83,6 +114,7 @@ export default function PreviewPanel() {
     if (!first) return;
     setOutside(skyToImage(first.ra, first.dec, frame) === null);
     setMarker(null); // el marcador del candidato lo dibuja la animación
+    goSky(first.ra, first.dec, CLOSE_UP_FOV_DEG);
     setSelected(obj);
     clock.seek(0);
   };
@@ -99,6 +131,7 @@ export default function PreviewPanel() {
   if (selected && moving) {
     markers.push({ id: `${selected.id}-now`, label: selected.name ?? selected.id, ...moving });
   }
+  const trail = selected ? trackPoints(selected, epochs) : [];
 
   // "Reiniciar visor": vuelve al zoom inicial, detiene la animación y limpia marcador y recuadro.
   const resetViewer = () => {
@@ -108,35 +141,72 @@ export default function PreviewPanel() {
     setMarker(null);
     setSelected(null);
     setOutside(false);
+    goSky(ALL_SKY.raDeg, ALL_SKY.decDeg, ALL_SKY.fovDeg);
   };
+
+  // Las imágenes de prueba: se usan a pantalla completa o dentro del mosaico, según el modo.
+  const epochLayers = frames?.map((f, i) => (
+    <EpochLayer
+      key={f.epochId}
+      imageUrl={f.imageUrl}
+      filter={filter}
+      inten={inten}
+      gain={gain}
+      opacity={layerOpacity(i, clock.t)}
+      onError={setSceneError}
+    />
+  ));
 
   return (
     <ViewerShell
       background={
-        <PanZoom key={revision}>
-          {frames?.map((f, i) => (
-            <EpochLayer
-              key={f.epochId}
-              imageUrl={f.imageUrl}
-              filter={filter}
-              inten={inten}
-              gain={gain}
-              opacity={layerOpacity(i, clock.t)}
-              onError={setSceneError}
+        <>
+          {skyOpened && !skyFailed && (
+            <SkyStage
+              active={skyMode}
+              target={skyTarget}
+              cssFilter={skyCssFilter(filter.id, inten, gain)}
+              patch={{
+                ra: frame?.ra ?? 209.4201,
+                dec: frame?.dec ?? 53.9431,
+                fovDeg: frame?.fovDeg ?? 3.5,
+                label: TEST_LABEL,
+              }}
+              patchContent={skyMode ? epochLayers : null}
+              markers={markers}
+              trail={trail}
+              t={clock.t}
+              onFail={onSkyFail}
             />
-          ))}
-          {frame && selected && <TrailLayer frame={frame} points={trackPoints(selected, epochs)} t={clock.t} />}
-          {frame && <MarkerLayer frame={frame} markers={markers} />}
-        </PanZoom>
+          )}
+          {skyMode && skyFailed && (
+            <AladinBackground
+              key={revision}
+              position={{ raDeg: skyTarget.raDeg, decDeg: skyTarget.decDeg }}
+              fovDeg={skyTarget.fovDeg}
+              surveyUrl={ALLWISE_HIPS_URL}
+              style={{ marginTop: 88, height: "calc(100% - 88px)" }}
+              title="Mosaico del cielo infrarrojo AllWISE"
+            />
+          )}
+          {!skyMode && (
+            <PanZoom key={revision}>
+              {epochLayers}
+              {frame && selected && <TrailLayer frame={frame} points={trail} t={clock.t} />}
+              {frame && <MarkerLayer frame={frame} markers={markers} />}
+            </PanZoom>
+          )}
+        </>
       }
       controls={
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {message && <Typography sx={{ color: "#fff" }}>{message}</Typography>}
-          {outside && (
+          {outside && !skyMode && (
             <Typography variant="body2" sx={{ color: "#fff" }}>
               Ese punto está fuera de esta imagen.
             </Typography>
           )}
+          <ModeToggle value={mode} onChange={changeMode} />
           {frames && frames.length > 1 && epochs.length > 1 && (
             <PlaybackBar
               epochs={epochs}
@@ -158,7 +228,9 @@ export default function PreviewPanel() {
               gain={gain}
               onInten={setInten}
               onGain={setGain}
-              onUpload={() => setSceneError("En la vista previa se usan las épocas simuladas; no se pueden subir imágenes.")}
+              onUpload={() =>
+                setSceneError("En la vista previa se usan las épocas simuladas; no se pueden subir imágenes.")
+              }
               onDemo={() => {}}
               onHelp={() => {
                 setMenuSection(1);
