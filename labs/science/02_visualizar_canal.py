@@ -7,47 +7,66 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.utils.data import download_file
 
+# --------------------------------------------------
+# 1. CARGAR CUBO SPHEREx M101
+# --------------------------------------------------
+
 url = (
     "https://irsa.ipac.caltech.edu/data/demos/"
     "notebooks/spherex/M101_irsa.fits"
 )
 
-# Reutiliza el FITS descargado en la caché de Astropy
 archivo = download_file(url, cache=True)
 
-Path("outputs").mkdir(exist_ok=True)
+carpeta_salida = Path(__file__).resolve().parent / "outputs"
+carpeta_salida.mkdir(parents=True, exist_ok=True)
+
+# --------------------------------------------------
+# 2. INSPECCIONAR CANAL ESPECTRAL
+# --------------------------------------------------
+
+canal = 63
+indice = canal - 1
 
 with fits.open(archivo) as hdul:
-    # Elegimos el canal 63 (numeración desde 1)
-    canal = 63
-    indice = canal - 1
 
+    hdul.info()
+
+    # Extraer el plano correspondiente al canal
     imagen = hdul["IMAGE"].data[indice].copy()
     hits = hdul["NHITS"].data[indice].copy()
     flags = hdul["FLAGS"].data[indice].copy()
 
-    # Leer la información de los 102 canales
-channels = hdul["SPECTRAL_CHANNELS"].data
+    # Consultar la tabla de canales espectrales
+    channels = hdul["SPECTRAL_CHANNELS"].data
 
-# Obtener la longitud de onda central del canal 63
-longitud_onda = float(channels["WAVELENGTH"][indice])
+    longitud_onda = float(
+        channels["WAVELENGTH"][indice]
+    )
 
-    # WCS espacial
-wcs = WCS(hdul["IMAGE"].header, fobj=hdul).celestial
+    # Extraer WCS espacial (RA y DEC)
+    wcs = WCS(
+        hdul["IMAGE"].header,
+        fobj=hdul
+    ).celestial
 
-    # Revisar fechas en todos los encabezados
-print("\n--- METADATOS TEMPORALES ---")
-for hdu in hdul:
+    # Consultar metadatos temporales
+    print("\n--- METADATOS TEMPORALES ---")
+
+    for hdu in hdul:
         for key in ["DATE-OBS", "DATE-END", "MJD-OBS"]:
             if key in hdu.header:
                 print(hdu.name, key, hdu.header[key])
 
-# Bits de calidad documentados por IRSA
+# --------------------------------------------------
+# 3. INTERPRETAR BANDERAS DE CALIDAD
+# --------------------------------------------------
+
 overflow = (flags & (1 << 1)) != 0
 outlier = (flags & (1 << 19)) != 0
 source = (flags & (1 << 21)) != 0
 
-# Máscara de píxeles utilizables para esta inspección
+# Mascara de pixeles utilizables
 validos = (
     np.isfinite(imagen)
     & (hits > 0)
@@ -57,39 +76,75 @@ validos = (
 
 imagen_limpia = np.where(validos, imagen, np.nan)
 
+# --------------------------------------------------
+# 4. MOSTRAR INFORMACION CIENTIFICA
+# --------------------------------------------------
+
 print("\n--- CANAL SELECCIONADO ---")
+
 print("Canal:", canal)
 print("Longitud de onda:", longitud_onda, "micras")
-print("Forma:", imagen.shape)
+print("Dimensiones:", imagen.shape)
 print("Pixeles validos:", np.sum(validos))
 print("Pixeles overflow:", np.sum(overflow))
 print("Pixeles outlier:", np.sum(outlier))
 print("Pixeles fuente:", np.sum(source))
 
-# Coordenadas celestes del centro
-centro = wcs.pixel_to_world(133, 133)
-print("RA central:", centro.ra.deg)
-print("DEC central:", centro.dec.deg)
+# Coordenadas del centro de la imagen
+centro_x = (imagen.shape[1] - 1) / 2
+centro_y = (imagen.shape[0] - 1) / 2
 
-# Rango de visualización: no modifica datos físicos
+centro = wcs.pixel_to_world(centro_x, centro_y)
+
+print("\n--- COORDENADAS CENTRALES ---")
+print("RA:", centro.ra.deg)
+print("DEC:", centro.dec.deg)
+
+# --------------------------------------------------
+# 5. VISUALIZAR IMAGEN Y COBERTURA
+# --------------------------------------------------
+
+if not np.any(validos):
+    raise ValueError(
+        "No hay pixeles validos para visualizar este canal."
+    )
+
 vmin, vmax = np.nanpercentile(
     imagen_limpia, [5, 99.5]
 )
 
-fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+fig, axes = plt.subplots(
+    1, 3, figsize=(14, 4)
+)
 
-axes[0].imshow(
+# Imagen cientifica
+im0 = axes[0].imshow(
     imagen_limpia,
     origin="lower",
     cmap="inferno",
     vmin=vmin,
     vmax=vmax
 )
+
 axes[0].set_title(f"M101 - Canal {canal}")
 
-axes[1].imshow(hits, origin="lower", cmap="viridis")
+fig.colorbar(
+    im0,
+    ax=axes[0],
+    label="MJy/sr",
+    fraction=0.046
+)
+
+# Numero de contribuciones
+axes[1].imshow(
+    hits,
+    origin="lower",
+    cmap="viridis"
+)
+
 axes[1].set_title("Cobertura NHITS")
 
+# Mascara de calidad
 axes[2].imshow(
     validos,
     origin="lower",
@@ -97,13 +152,23 @@ axes[2].imshow(
     vmin=0,
     vmax=1
 )
+
 axes[2].set_title("Mascara de calidad")
 
 for ax in axes:
     ax.set_xlabel("X [pixeles]")
     ax.set_ylabel("Y [pixeles]")
 
-plt.suptitle(f"SPHEREx M101 - {longitud_onda:.3f} um")
+plt.suptitle(
+    f"SPHEREx M101 - {longitud_onda:.3f} um"
+)
+
 plt.tight_layout()
-plt.savefig("outputs/11_m101_canal_63.png", dpi=180)
+
+ruta_salida = carpeta_salida / "11_m101_canal_63.png"
+
+plt.savefig(ruta_salida, dpi=180)
+
+print("\nImagen guardada en:", ruta_salida)
+
 plt.show()
