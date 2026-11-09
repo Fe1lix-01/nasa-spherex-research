@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import health, observations, objects, irsa
+from app.routers import health, observations, objects, irsa, frames
 
 
 app = FastAPI(
@@ -10,7 +10,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
-app.add_middleware(                   ## Configuracion de CORS que permite la comunicacion de frontend ##
+app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
@@ -21,9 +21,8 @@ app.add_middleware(                   ## Configuracion de CORS que permite la co
     allow_headers=["*"],
 )
 
-
-# Registro de los routers de la API.
 app.include_router(health.router)
 app.include_router(observations.router)
 app.include_router(objects.router)
 app.include_router(irsa.router)
+app.include_router(frames.router)
