@@ -1,3 +1,4 @@
+
 "use client";
 
 /**
@@ -118,6 +119,7 @@ export default function CatalogPage() {
 
     void loadCatalog();
 
+    // Cancela las actualizaciones de estado si se desmonta la página.
     return () => {
       active = false;
     };
@@ -125,14 +127,16 @@ export default function CatalogPage() {
 
   /**
    * Consulta el detalle cuando cambia el objeto seleccionado.
+   *
+   * No actualiza estados directamente en el cuerpo del efecto,
+   * evitando el problema señalado por react-hooks/set-state-in-effect.
    */
   useEffect(() => {
-    if (!selectedId) {
-      setSelectedObject(null);
-      setDetailLoading(false);
-      setDetailError(null);
-      return;
-    }
+    // Si no existe una selección, no se inicia ninguna petición.
+    if (!selectedId) return;
+
+    // Guarda el identificador para utilizarlo dentro de la petición.
+    const objectId = selectedId;
 
     let active = true;
 
@@ -141,7 +145,7 @@ export default function CatalogPage() {
       setDetailError(null);
 
       try {
-        const result = await eterApiService.getObject(selectedId!);
+        const result = await eterApiService.getObject(objectId);
 
         if (active) {
           setSelectedObject(result);
@@ -160,6 +164,8 @@ export default function CatalogPage() {
 
     void loadObjectDetail();
 
+    // Evita actualizar el estado si cambia la selección
+    // o el componente se desmonta antes de terminar la petición.
     return () => {
       active = false;
     };
@@ -189,10 +195,15 @@ export default function CatalogPage() {
         {/* Encabezado principal del catálogo. */}
         <Stack
           direction={{ xs: "column", sm: "row" }}
-          justifyContent="space-between"
-          alignItems={{ xs: "flex-start", sm: "center" }}
           spacing={2}
-          sx={{ mb: 3 }}
+          sx={{
+            mb: 3,
+            justifyContent: "space-between",
+            alignItems: {
+              xs: "flex-start",
+              sm: "center",
+            },
+          }}
         >
           <Box>
             <Typography
@@ -235,7 +246,14 @@ export default function CatalogPage() {
         </Stack>
 
         {/* Indicadores generales de los datos recibidos. */}
-        <Stack direction="row" spacing={1} sx={{ mb: 3 }} flexWrap="wrap">
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            mb: 3,
+            flexWrap: "wrap",
+          }}
+        >
           <Chip
             label={`${objects.length} objetos`}
             sx={{
@@ -255,6 +273,7 @@ export default function CatalogPage() {
           />
         </Stack>
 
+        {/* Error general al consultar el catálogo. */}
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             No se pudo cargar el catálogo: {error}
@@ -289,7 +308,12 @@ export default function CatalogPage() {
               <Divider sx={{ borderColor: eter.line, my: 2 }} />
 
               {loading ? (
-                <Stack alignItems="center" sx={{ py: 4 }}>
+                <Stack
+                  sx={{
+                    py: 4,
+                    alignItems: "center",
+                  }}
+                >
                   <CircularProgress size={26} />
                 </Stack>
               ) : objects.length === 0 ? (
@@ -341,11 +365,14 @@ export default function CatalogPage() {
                               {object.observation_count} observaciones
                             </Typography>
 
+                            {/* Detectores asociados al objeto. */}
                             <Stack
                               direction="row"
                               spacing={0.5}
-                              flexWrap="wrap"
                               useFlexGap
+                              sx={{
+                                flexWrap: "wrap",
+                              }}
                             >
                               {object.detectors.map((detector) => (
                                 <Chip
@@ -374,13 +401,21 @@ export default function CatalogPage() {
           {/* Panel derecho: detalle y metadatos del objeto seleccionado. */}
           <Card elevation={0} sx={panelStyle}>
             <Box sx={{ p: { xs: 2, md: 3 } }}>
-              {detailLoading ? (
+              {detailError && selectedId ? (
+                <Alert severity="error">
+                  No se pudo cargar el detalle: {detailError}
+                </Alert>
+              ) : detailLoading ||
+                (selectedId !== null && selectedObject?.id !== selectedId) ? (
                 <Stack
-                  alignItems="center"
                   spacing={2}
-                  sx={{ py: 8 }}
+                  sx={{
+                    py: 8,
+                    alignItems: "center",
+                  }}
                 >
                   <CircularProgress size={30} />
+
                   <Typography
                     variant="body2"
                     sx={{ color: eter.textMuted }}
@@ -388,16 +423,13 @@ export default function CatalogPage() {
                     Consultando observaciones...
                   </Typography>
                 </Stack>
-              ) : detailError ? (
-                <Alert severity="error">
-                  No se pudo cargar el detalle: {detailError}
-                </Alert>
-              ) : !selectedObject ? (
+              ) : !selectedId || !selectedObject ? (
                 <Typography sx={{ color: eter.textMuted }}>
                   Selecciona un objeto para consultar su información.
                 </Typography>
               ) : (
                 <>
+                  {/* Información general del objeto seleccionado. */}
                   <Typography
                     variant="overline"
                     sx={{ color: eter.textFaint, letterSpacing: 1.5 }}
@@ -431,6 +463,7 @@ export default function CatalogPage() {
                     Observaciones y metadatos FITS
                   </Typography>
 
+                  {/* Error independiente de los metadatos FITS. */}
                   {framesError && (
                     <Alert severity="warning" sx={{ mb: 2 }}>
                       No se pudieron consultar los metadatos FITS:{" "}
@@ -468,11 +501,14 @@ export default function CatalogPage() {
                           }}
                         >
                           <Box sx={{ p: 2 }}>
+                            {/* Identificación del detector y formato. */}
                             <Stack
                               direction="row"
-                              justifyContent="space-between"
-                              alignItems="center"
-                              sx={{ mb: 1.5 }}
+                              sx={{
+                                mb: 1.5,
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                              }}
                             >
                               <Typography
                                 variant="subtitle1"
@@ -596,10 +632,8 @@ export default function CatalogPage() {
                     })}
                   </Box>
 
-                  <Alert
-                    severity="info"
-                    sx={{ mt: 3 }}
-                  >
+                  {/* Aclaración sobre la disponibilidad de imágenes. */}
+                  <Alert severity="info" sx={{ mt: 3 }}>
                     Actualmente la API proporciona metadatos de los archivos
                     FITS. Para visualizar las imágenes necesitamos conectar
                     posteriormente un endpoint de imagen renderizada.
