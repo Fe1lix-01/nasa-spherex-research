@@ -34,6 +34,7 @@ export type MovingObject = {
   id: string;
   kind: ObjectKind;
   name?: string; // opcional: no todos tienen nombre conocido
+  summary?: string; // explicación breve para mostrar a las personas (opcional)
   positions: SkyPosition[]; // una por cada época en la que se detectó
   /** Opcional: no siempre hay suficientes épocas para predecir. */
   prediction?: {

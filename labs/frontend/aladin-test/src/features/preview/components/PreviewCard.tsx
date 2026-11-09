@@ -46,6 +46,8 @@ export default function PreviewCard({ object, epochs, onClose }: Props) {
         display: "flex",
         flexDirection: "column",
         gap: 1.5,
+        maxHeight: "calc(100vh - 110px)", // si no cabe en pantalla, se desplaza por dentro
+        overflowY: "auto",
         boxShadow: "0 8px 24px rgba(0, 0, 0, 0.4)",
       }}
     >
@@ -70,6 +72,13 @@ export default function PreviewCard({ object, epochs, onClose }: Props) {
           </Box>
         </IconButton>
       </Box>
+
+      {/* Explicación breve del candidato */}
+      {object.summary && (
+        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.8)", lineHeight: 1.45 }}>
+          {object.summary}
+        </Typography>
+      )}
 
       {/* Última posición conocida */}
       {latest && (

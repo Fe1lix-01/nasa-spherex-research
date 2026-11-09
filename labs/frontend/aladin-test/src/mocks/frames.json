@@ -1,9 +1,23 @@
 [
   {
     "epochId": "e1",
-    "imageUrl": "/frames/epoca1_D6.png",
+    "imageUrl": "/frames/sim_e1_D6.png",
     "ra": 209.4201,
     "dec": 53.9431,
-    "fovDeg": 3.333
+    "fovDeg": 3.5
+  },
+  {
+    "epochId": "e2",
+    "imageUrl": "/frames/sim_e2_D6.png",
+    "ra": 209.4201,
+    "dec": 53.9431,
+    "fovDeg": 3.5
+  },
+  {
+    "epochId": "e3",
+    "imageUrl": "/frames/sim_e3_D6.png",
+    "ra": 209.4201,
+    "dec": 53.9431,
+    "fovDeg": 3.5
   }
 ]
