@@ -19,6 +19,8 @@ type Props = {
   sourceLabel: string;
   menuOpen: boolean;
   onOpenMenu: () => void;
+  /** Reemplaza la frase de abajo. Si no se pasa, se muestra la de siempre; con null no se muestra nada. */
+  tagline?: ReactNode;
 };
 
 /**
@@ -33,6 +35,7 @@ export default function ViewerShell({
   sourceLabel,
   menuOpen,
   onOpenMenu,
+  tagline,
 }: Props) {
   return (
     <Box component="main" sx={{ position: "relative", height: "100%", width: "100%", overflow: "hidden" }}>
@@ -89,7 +92,7 @@ export default function ViewerShell({
             gap: 2,
           }}
         >
-          <ViewerTagline sourceLabel={sourceLabel} />
+          {tagline !== undefined ? tagline : <ViewerTagline sourceLabel={sourceLabel} />}
           <Box sx={{ pointerEvents: "auto" }}>{controls}</Box>
         </Box>
       </Box>
