@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 # Importamos los tres módulos de rutas.
 # Esta importación debe aparecer una sola vez.
-from app.routers import health, observations, objects, irsa
+from app.routers import health, observations, objects, irsa, science_preview
 
                                             
 # Creamos la aplicación principal.
@@ -22,3 +22,4 @@ app.include_router(observations.router)
 app.include_router(objects.router)
 
 app.include_router(irsa.router)
+app.include_router(science_preview.router)
