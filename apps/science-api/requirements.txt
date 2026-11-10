@@ -19,3 +19,9 @@ pytest==9.1.1
 
 # Dependencia que ya estaba en tu archivo original.
 httpx2==2.13.0
+
+# Operaciones numéricas sobre matrices de píxeles.
+numpy>=2.1.0
+
+# Generación de imágenes PNG.
+Pillow>=11.0.0

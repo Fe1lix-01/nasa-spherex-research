@@ -1,9 +1,10 @@
+
 /**
  * Cliente HTTP para consumir los endpoints reales de ETER API.
  *
  * Este servicio es independiente de mockService y skyData.
- * Permite consultar el catálogo astronómico, los FITS
- * y las observaciones sin modificar la vista de demostración.
+ * Permite consultar el catálogo astronómico, los FITS,
+ * las imágenes PNG y las observaciones.
  */
 
 import type {
@@ -72,13 +73,25 @@ async function request<T>(path: string): Promise<T> {
 
 /**
  * Funciones disponibles para consultar ETER API.
+ *
+ * Todos los métodos permanecen dentro de este único objeto.
  */
 export const eterApiService = {
   /**
-   * Obtiene los metadatos de los archivos FITS disponibles.
+   * Obtiene los metadatos de todos los frames FITS.
    */
   getFrames(): Promise<FramesResponse> {
     return request<FramesResponse>("/frames");
+  },
+
+  /**
+   * Construye la URL de la imagen PNG de un frame.
+   *
+   * El backend devuelve directamente la imagen,
+   * por lo que no es necesario procesarla como JSON.
+   */
+  getFrameImageUrl(frameId: string): string {
+    return `${API_BASE_URL}/frames/${encodeURIComponent(frameId)}/image`;
   },
 
   /**

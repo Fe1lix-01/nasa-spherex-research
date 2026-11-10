@@ -544,86 +544,45 @@ export default function CatalogPage() {
 
                             {frame ? (
                               <Stack spacing={1}>
+                                {/* Separador entre los datos de la observación y la imagen. */}
                                 <Divider
-                                  sx={{ borderColor: eter.line }}
+                                  sx={{
+                                    borderColor: eter.line,
+                                    width: "100%",
+                                  }}
                                 />
 
-                                <Typography variant="body2">
-                                  <Box
-                                    component="span"
-                                    sx={{ color: eter.textMuted }}
-                                  >
-                                    Dimensiones:{" "}
-                                  </Box>
-                                  {frame.width} × {frame.height} px
+                                {/* Vista previa de la imagen astronómica convertida a PNG. */}
+                                <Box
+                                  component="img"
+                                  src={eterApiService.getFrameImageUrl(frame.id)}
+                                  alt={`Imagen astronómica del detector ${frame.detector}`}
+                                  loading="lazy"
+                                  sx={{
+                                    display: "block",
+                                    width: "100%",
+                                    height: 220,
+                                    objectFit: "contain",
+                                    bgcolor: "rgba(0, 0, 0, 0.35)",
+                                    border: `1px solid ${eter.line}`,
+                                    borderRadius: 1,
+                                    imageRendering: "pixelated",
+                                  }}
+                                />
+
+                                {/* Información técnica del frame. */}
+                                <Typography variant="caption" color="text.secondary">
+                                  Resolución: {frame.width} × {frame.height} px
                                 </Typography>
 
-                                <Typography variant="body2">
-                                  <Box
-                                    component="span"
-                                    sx={{ color: eter.textMuted }}
-                                  >
-                                    Centro RA:{" "}
-                                  </Box>
-                                  {frame.center_ra_deg.toFixed(6)}°
-                                </Typography>
-
-                                <Typography variant="body2">
-                                  <Box
-                                    component="span"
-                                    sx={{ color: eter.textMuted }}
-                                  >
-                                    Centro DEC:{" "}
-                                  </Box>
+                                <Typography variant="caption" color="text.secondary">
+                                  Coordenadas: RA {frame.center_ra_deg.toFixed(6)}° · DEC{" "}
                                   {frame.center_dec_deg.toFixed(6)}°
-                                </Typography>
-
-                                <Typography variant="body2">
-                                  <Box
-                                    component="span"
-                                    sx={{ color: eter.textMuted }}
-                                  >
-                                    Escala de píxel:{" "}
-                                  </Box>
-                                  {frame.pixel_scale_x_arcsec.toFixed(3)} ×{" "}
-                                  {frame.pixel_scale_y_arcsec.toFixed(3)}{" "}
-                                  arcsec/px
-                                </Typography>
-
-                                <Typography variant="body2">
-                                  <Box
-                                    component="span"
-                                    sx={{ color: eter.textMuted }}
-                                  >
-                                    Campo de visión:{" "}
-                                  </Box>
-                                  {frame.fov_x_deg.toFixed(5)} ×{" "}
-                                  {frame.fov_y_deg.toFixed(5)}°
-                                </Typography>
-
-                                <Typography variant="body2">
-                                  <Box
-                                    component="span"
-                                    sx={{ color: eter.textMuted }}
-                                  >
-                                    Sistema:{" "}
-                                  </Box>
-                                  {frame.coordinate_system}
-                                </Typography>
-
-                                <Typography variant="body2">
-                                  <Box
-                                    component="span"
-                                    sx={{ color: eter.textMuted }}
-                                  >
-                                    Proyección:{" "}
-                                  </Box>
-                                  {frame.projection}
                                 </Typography>
                               </Stack>
                             ) : (
                               <Alert severity="warning">
-                                No se encontraron metadatos para este archivo.
+                                No se encontró información del frame correspondiente a esta observación.
                               </Alert>
                             )}
                           </Box>
@@ -632,11 +591,10 @@ export default function CatalogPage() {
                     })}
                   </Box>
 
-                  {/* Aclaración sobre la disponibilidad de imágenes. */}
+                  {/* Informamos que las imágenes se sirven desde ETER API. */}
                   <Alert severity="info" sx={{ mt: 3 }}>
-                    Actualmente la API proporciona metadatos de los archivos
-                    FITS. Para visualizar las imágenes necesitamos conectar
-                    posteriormente un endpoint de imagen renderizada.
+                    Las imágenes se generan a partir de los archivos FITS originales
+                    y se sirven como PNG desde ETER API.
                   </Alert>
                 </>
               )}

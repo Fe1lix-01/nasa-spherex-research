@@ -5,6 +5,14 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services import frames as frames_service
+# BytesIO permite abrir imágenes PNG directamente desde memoria.
+from io import BytesIO
+
+# Pillow permite verificar el contenido y las dimensiones del PNG.
+from PIL import Image
+
+# Importamos el servicio para poder modificar su directorio durante las pruebas.
+from app.services import frame_images as frame_images_service
 
 
 client = TestClient(app)
@@ -83,3 +91,91 @@ def test_list_frames_rejects_fits_without_wcs(
         match="WCS"
     ):
         frames_service.list_frames()
+
+def test_get_frame_image_returns_png():
+    """Comprueba que un FITS válido se entregue como imagen PNG."""
+
+    # Recuperamos el identificador de un frame existente.
+    frame_id = frames_service.list_frames()[0]["id"]
+
+    # Solicitamos la representación PNG del frame.
+    response = client.get(f"/api/v1/frames/{frame_id}/image")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+
+    # Abrimos la imagen directamente desde la respuesta HTTP.
+    with Image.open(BytesIO(response.content)) as image:
+        assert image.format == "PNG"
+        assert image.mode == "L"
+        assert image.size == (16, 16)
+
+
+def test_get_frame_image_not_found():
+    """Comprueba que un frame inexistente devuelva HTTP 404."""
+
+    response = client.get(
+        "/api/v1/frames/frame_inexistente_D1.fits/image"
+    )
+
+    assert response.status_code == 404
+
+
+def test_get_frame_image_rejects_invalid_fits(monkeypatch, tmp_path):
+    """Comprueba que un archivo que no es FITS devuelva HTTP 503."""
+
+    # Creamos un directorio temporal para aislar la prueba.
+    fits_dir = tmp_path / "fits"
+    fits_dir.mkdir()
+
+    # Creamos un archivo que no contiene una estructura FITS válida.
+    invalid_file = fits_dir / "invalid_D1.fits"
+    invalid_file.write_bytes(b"Esto no es un archivo FITS")
+
+    # Redirigimos el servicio al directorio temporal.
+    monkeypatch.setattr(
+        frame_images_service,
+        "FITS_DIR",
+        fits_dir,
+    )
+
+    # Solicitamos la conversión del archivo inválido.
+    response = client.get(
+        "/api/v1/frames/invalid_D1.fits/image"
+    )
+
+    assert response.status_code == 503
+
+
+def test_get_frame_image_rejects_non_finite_data(monkeypatch, tmp_path):
+    """Comprueba que una imagen sin valores finitos no pueda convertirse."""
+
+    # Creamos un directorio temporal.
+    fits_dir = tmp_path / "fits"
+    fits_dir.mkdir()
+
+    # Generamos una matriz cuyos píxeles contienen únicamente NaN.
+    invalid_file = fits_dir / "nan_D1.fits"
+
+    hdu = fits.PrimaryHDU(
+        data=[
+            [float("nan") for _ in range(16)]
+            for _ in range(16)
+        ]
+    )
+
+    hdu.writeto(invalid_file)
+
+    # Redirigimos el servicio al directorio temporal.
+    monkeypatch.setattr(
+        frame_images_service,
+        "FITS_DIR",
+        fits_dir,
+    )
+
+    # Solicitamos la conversión de la imagen sin valores válidos.
+    response = client.get(
+        "/api/v1/frames/nan_D1.fits/image"
+    )
+
+    assert response.status_code == 503
