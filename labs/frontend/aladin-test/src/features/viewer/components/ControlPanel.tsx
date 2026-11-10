@@ -11,6 +11,7 @@ import { eter } from "@/theme/theme";
 import type { ControlOption } from "../types";
 import FilterChips from "./FilterChips";
 import LabeledSlider from "./LabeledSlider";
+import AnimatedButton from "@/components/AnimatedButton/AnimatedButton";
 
 // Estilo de los botones discretos (Ayuda, Escena demo). Está fuera del componente
 // para que no se vuelva a crear en cada render.
@@ -112,21 +113,11 @@ export default function ControlPanel({
           Ayuda
         </Button>
 
-        <Button
-          variant="outlined"
-          color="inherit"
-          startIcon={<FileUploadOutlined />}
-          onClick={() => fileRef.current?.click()}
-          sx={{
-            borderRadius: "12px",
-            borderColor: eter.lineStrong,
-            fontSize: { xs: 13, sm: 14 },
-            px: { xs: 1.5, sm: 2 },
-            "&:hover": { borderColor: eter.lineHover, backgroundColor: eter.hoverFill },
-          }}
-        >
+        <AnimatedButton onClick={() => fileRef.current?.click()}>
+          <FileUploadOutlined sx={{ fontSize: 18 }} />
           Subir imagen
-        </Button>
+        </AnimatedButton>
+
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFile} />
 
         <Button

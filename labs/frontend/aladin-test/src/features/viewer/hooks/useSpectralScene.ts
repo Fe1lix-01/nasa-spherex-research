@@ -17,7 +17,7 @@ export type Source = "demo" | "upload";
  * Devuelve la referencia del canvas (para pasársela a <ViewerCanvas />), la fuente actual,
  * el mensaje de error y las acciones para subir una imagen o volver a la escena demo.
  */
-export function useSpectralScene(filter: FilterDef, inten: number, gain: number) {
+export function useSpectralScene(filter: FilterDef, inten: number, gain: number, frameUrl?: string) {
   const [source, setSource] = useState<Source>("demo");
   const [sceneVersion, setSceneVersion] = useState(0); // sube cada vez que cambian los datos
   const [error, setError] = useState<string | null>(null);
@@ -38,29 +38,67 @@ export function useSpectralScene(filter: FilterDef, inten: number, gain: number)
     renderLayers(ctx, imageRef.current, layers, filter, inten, gain);
   }, [filter, inten, gain]);
 
-  // Carga la escena demo: usa /public/escena-demo.jpg si existe; si no, genera una simulada.
-  const loadDemo = useCallback(async (layers: Layers, isCancelled: () => boolean = () => false) => {
-    try {
-      await loadUrlIntoLayers(DEMO_IMAGE_URL, layers);
-    } catch {
-      if (isCancelled()) return;
-      generateScene(layers);
-    }
-    if (isCancelled()) return;
-    setSource("demo");
-    setSceneVersion((v) => v + 1);
-  }, []);
+  // Carga la escena demo y devuelve si terminó correctamente.
+  // No modifica directamente el estado de React.
+  const loadDemo = useCallback(
+    async (
+      layers: Layers,
+      isCancelled: () => boolean = () => false
+    ): Promise<boolean> => {
+      try {
+        // Intenta cargar la imagen de demostración.
+        await loadUrlIntoLayers(DEMO_IMAGE_URL, layers);
+      } catch {
+        // Si la carga falla y el componente sigue activo, genera una escena simulada.
+        if (isCancelled()) return false;
+        generateScene(layers);
+      }
 
-  // Al montar: crea las capas y carga la escena demo.
+      // Indica si la operación terminó sin haber sido cancelada.
+      return !isCancelled();
+    },
+    []
+  );
+
+  // Al montar: crea las capas y carga la imagen indicada o, si no hay, la escena demo.
+  // Al montar: crea las capas y carga la imagen indicada o la escena demo.
   useEffect(() => {
     let cancelled = false;
+
+    // Crea las capas que utilizará el visor.
     const layers = createLayers();
     layersRef.current = layers;
-    loadDemo(layers, () => cancelled);
+
+    if (frameUrl) {
+      // Carga una imagen convencional proporcionada mediante URL.
+      loadUrlIntoLayers(frameUrl, layers)
+        .then(() => {
+          if (cancelled) return;
+
+          // Actualiza el estado cuando termina la carga.
+          setSource("upload");
+          setSceneVersion((v) => v + 1);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setError("No se pudo cargar la imagen de la época.");
+          }
+        });
+    } else {
+      // Carga la escena demo y actualiza React cuando termina la operación.
+      void loadDemo(layers, () => cancelled).then((loaded) => {
+        if (!loaded || cancelled) return;
+
+        setSource("demo");
+        setSceneVersion((v) => v + 1);
+      });
+    }
+
+    // Evita actualizar el estado si el componente se desmonta.
     return () => {
       cancelled = true;
     };
-  }, [loadDemo]);
+  }, [loadDemo, frameUrl]);
 
   // Cada vez que cambia filtro, sliders o datos: vuelve a dibujar (máx. una vez por frame).
   useEffect(() => {
@@ -81,12 +119,24 @@ export function useSpectralScene(filter: FilterDef, inten: number, gain: number)
     }
   };
 
-  // Vuelve a la escena demo.
+   // Vuelve a cargar la escena demo.
   const reloadDemo = () => {
-    if (layersRef.current) loadDemo(layersRef.current);
+    const layers = layersRef.current;
+
+    if (!layers) return;
+
+    // Actualiza el estado después de completar la carga.
+    void loadDemo(layers).then((loaded) => {
+      if (!loaded) return;
+
+      setSource("demo");
+      setSceneVersion((v) => v + 1);
+    });
   };
 
+  // Limpia el mensaje de error actual.
   const clearError = () => setError(null);
 
+  // Expone el canvas, el estado de la escena y sus acciones.
   return { canvasRef, source, error, clearError, upload, reloadDemo };
 }

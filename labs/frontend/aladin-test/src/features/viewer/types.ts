@@ -21,7 +21,7 @@ export type FilterDef = {
   band: string;
   desc: string;
   /** null = sin filtro (vista visible). Escribe el color resultante en `out`. */
-  fn:
+    fn:
     | ((
         v: number,
         neb: number,

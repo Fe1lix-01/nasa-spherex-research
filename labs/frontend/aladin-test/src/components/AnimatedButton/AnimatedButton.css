@@ -1,0 +1,67 @@
+.animated-button {
+  --ab-line: #ffffff;
+  --ab-base: #2a313b;
+  --ab-bg: rgba(255, 255, 255, 0.03);
+
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ab-bg);
+  color: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s ease;
+}
+
+/* Borde de 1 px con un destello centrado en --ab-angle (lo actualiza el script). */
+.animated-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--ab-angle, 0deg),
+    var(--ab-line) 0deg,
+    var(--ab-base) 60deg,
+    var(--ab-base) 300deg,
+    var(--ab-line) 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+
+.animated-button__label {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.animated-button:hover {
+  --ab-bg: rgba(255, 255, 255, 0.06);
+}
+
+.animated-button:active {
+  transform: scale(0.98);
+}
+
+.animated-button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 3px;
+}
+
+.animated-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
