@@ -17,7 +17,7 @@ export type Source = "demo" | "upload";
  * Devuelve la referencia del canvas (para pasársela a <ViewerCanvas />), la fuente actual,
  * el mensaje de error y las acciones para subir una imagen o volver a la escena demo.
  */
-export function useSpectralScene(filter: FilterDef, inten: number, gain: number) {
+export function useSpectralScene(filter: FilterDef, inten: number, gain: number, frameUrl?: string) {
   const [source, setSource] = useState<Source>("demo");
   const [sceneVersion, setSceneVersion] = useState(0); // sube cada vez que cambian los datos
   const [error, setError] = useState<string | null>(null);
@@ -51,16 +51,28 @@ export function useSpectralScene(filter: FilterDef, inten: number, gain: number)
     setSceneVersion((v) => v + 1);
   }, []);
 
-  // Al montar: crea las capas y carga la escena demo.
+  // Al montar: crea las capas y carga la imagen indicada o, si no hay, la escena demo.
   useEffect(() => {
     let cancelled = false;
     const layers = createLayers();
     layersRef.current = layers;
-    loadDemo(layers, () => cancelled);
+    if (frameUrl) {
+      loadUrlIntoLayers(frameUrl, layers)
+        .then(() => {
+          if (cancelled) return;
+          setSource("upload");
+          setSceneVersion((v) => v + 1);
+        })
+        .catch(() => {
+          if (!cancelled) setError("No se pudo cargar la imagen de la época.");
+        });
+    } else {
+      loadDemo(layers, () => cancelled);
+    }
     return () => {
       cancelled = true;
     };
-  }, [loadDemo]);
+  }, [loadDemo, frameUrl]);
 
   // Cada vez que cambia filtro, sliders o datos: vuelve a dibujar (máx. una vez por frame).
   useEffect(() => {

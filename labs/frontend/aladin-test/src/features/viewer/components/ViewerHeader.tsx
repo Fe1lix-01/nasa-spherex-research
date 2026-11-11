@@ -41,21 +41,26 @@ const OPEN_LINE_STYLE = [
         <Box sx={{ pointerEvents: "auto" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Typography
-              component="h1"
-              sx={{ fontSize: { xs: 34, sm: 40 }, fontWeight: 400, lineHeight: 1, letterSpacing: "0.03em" }}
-            >
-              ÉTER
-            </Typography>
-            <Box sx={{ lineHeight: 1.25 }}>
-              <Typography
-                sx={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.14em", color: eter.textFaint }}
-              >
-                Visor espectral
-              </Typography>
-              <Typography sx={{ fontSize: 14, color: "rgba(255,255,255,0.8)" }}>SPHEREx</Typography>
-            </Box>
-          </Box>
-
+  component="h1"
+  sx={{ 
+    fontSize: { xs: 26, sm: 34, md: 40 }, // Se ajusta según la pantalla: móvil pequeño (xs), tablet (sm) y PC (md)
+    fontWeight: 400, 
+    lineHeight: 1.1, 
+    letterSpacing: "0.03em",
+    wordBreak: "break-word" // Evita desbordamientos si la pantalla es extremadamente pequeña
+  }}
+>
+  Project Morley
+</Typography>
+<Box sx={{ lineHeight: 1.25, mt: 0.5 }}>
+  <Typography
+    sx={{ fontSize: { xs: 9, sm: 10 }, textTransform: "uppercase", letterSpacing: "0.14em", color: eter.textFaint }}
+  >
+    Visor espectral
+  </Typography>
+  <Typography sx={{ fontSize: { xs: 12, sm: 14 }, color: "rgba(255,255,255,0.8)" }}>SPHEREx</Typography>
+</Box>
+</Box>
           <Chip
             variant="outlined"
             icon={<FiberManualRecord />}

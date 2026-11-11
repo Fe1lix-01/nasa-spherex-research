@@ -31,6 +31,7 @@ export const eter = {
 const theme = createTheme({
   palette: {
     mode: "dark",
+primary: { main: eter.accent, contrastText: eter.onAccent },    background: { default: eter.ink, paper: eter.panel },
     primary: { main: eter.accent, contrastText: eter.onAccent },
     background: { default: eter.ink, paper: eter.panel },
     text: {
