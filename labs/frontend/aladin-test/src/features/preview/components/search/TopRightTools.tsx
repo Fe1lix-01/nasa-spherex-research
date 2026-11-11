@@ -14,6 +14,7 @@ type Props = {
   /** "" = nada elegido, "custom" = coordenadas buscadas, o el id de un candidato. */
   value: string;
   onPickCandidate: (id: string) => void;
+  onPickRegion: (ra: number, dec: number, fovDeg: number) => void;
   onSearch: (ra: number, dec: number) => void;
   onReset: () => void;
   onInfo: () => void;
@@ -68,11 +69,19 @@ const buttonSx = {
   "&:hover": { borderColor: "#baa3ff", backgroundColor: "#202842" },
 } as const;
 
+const REGIONS = [
+  { id: "center", name: "Centro galáctico", ra: 266.4168, dec: -29.0078, fovDeg: 40 },
+  { id: "orion", name: "Nebulosa de Orión", ra: 83.8221, dec: -5.3911, fovDeg: 5 },
+  { id: "m101", name: "Galaxia M101", ra: 210.8023, dec: 54.3489, fovDeg: 1.5 },
+  { id: "all", name: "Todo el cielo", ra: 0, dec: 0, fovDeg: 360 },
+  { id: "barnard", name: "Estrella de Barnard", ra: 269.44627, dec: 4.76820, fovDeg: 0.25 },
+];
+
 /**
 
  * selector de candidatos + Coordenadas + Reiniciar visor + Información.
  */
-export default function TopRightTools({ objects, value, onPickCandidate, onSearch, onReset, onInfo, disabled }: Props) {
+export default function TopRightTools({ objects, value, onPickCandidate, onPickRegion, onSearch, onReset, onInfo, disabled }: Props) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [ra, setRa] = useState("");
   const [dec, setDec] = useState("");
@@ -111,27 +120,44 @@ export default function TopRightTools({ objects, value, onPickCandidate, onSearc
       }}
     >
       <SelectBox
-        aria-label="Candidato"
+        aria-label="Candidato o región"
         value={value}
         onChange={(e) => {
-          if (e.target.value) onPickCandidate(e.target.value);
+          const id = e.target.value;
+          const region = REGIONS.find((item) => `region:${item.id}` === id);
+
+          if (region) {
+            onPickRegion(region.ra, region.dec, region.fovDeg);
+          } else if (id) {
+            onPickCandidate(id);
+          }
         }}
       >
         {value === "" && (
           <option value="" disabled>
-            Elegir candidato
+            Elegir candidato o región
           </option>
         )}
+
         {value === "custom" && (
           <option value="custom" disabled>
             Ubicación personalizada
           </option>
         )}
+
         {objects.map((o) => (
           <option key={o.id} value={o.id}>
             {o.name ?? o.id} · {KIND_LABELS[o.kind] ?? o.kind}
           </option>
         ))}
+
+        <optgroup label="Regiones">
+          {REGIONS.map((region) => (
+            <option key={region.id} value={`region:${region.id}`}>
+              {region.name}
+            </option>
+          ))}
+        </optgroup>
       </SelectBox>
 
       <Button disabled={disabled} onClick={() => setPanelOpen((o) => !o)} sx={buttonSx}>

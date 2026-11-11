@@ -253,6 +253,13 @@ export default function PreviewPanel() {
         <>
           <SvgDefs />
           <TopRightTools
+          onPickRegion={(ra, dec, fovDeg) => {
+              setSelected(null);
+              setMarker(null);
+              setOutside(false);
+              changeMode("sky");
+              goSky(ra, dec, fovDeg);
+            }}
             objects={objects}
             value={selectValue}
             onPickCandidate={(id) => {
