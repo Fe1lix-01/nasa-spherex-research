@@ -19,6 +19,10 @@ class AstronomicalObjectSummary(BaseModel):
     # Ejemplo: ["D1", "D2", "D3"].
     detectors: list[str]
 
+class SciencePreview(BaseModel):
+    title: str
+    description: str
+
 # Hereda todos los campos del resumen:
 # id, name, observation_count y detectors.
 #
@@ -26,6 +30,7 @@ class AstronomicalObjectSummary(BaseModel):
 # Se usa para consultar un objeto por su ID.
 class AstronomicalObjectDetail(AstronomicalObjectSummary):
     observations: list[Observations]
+    science_preview: SciencePreview | None = None
 
 # Representa la respuesta del listado completo.
 class ObjectsResponse(BaseModel):
