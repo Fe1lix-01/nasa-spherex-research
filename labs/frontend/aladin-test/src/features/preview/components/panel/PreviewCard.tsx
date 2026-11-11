@@ -6,7 +6,7 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import type { Epoch, MovingObject } from "@/contracts";
-import { KIND_LABELS } from "../labels";
+import { KIND_LABELS } from "@/features/preview/model/labels";
 
 type Props = {
   object: MovingObject;

@@ -2,7 +2,7 @@
 
 import Box from "@mui/material/Box";
 import type { Frame } from "@/contracts";
-import { skyToImage } from "../projection";
+import { skyToImage } from "@/features/preview/model/projection";
 
 export type Marker = { id: string; label: string; ra: number; dec: number };
 

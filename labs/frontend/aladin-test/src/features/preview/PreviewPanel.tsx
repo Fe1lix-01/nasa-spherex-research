@@ -14,22 +14,22 @@ import { FILTERS } from "@/features/viewer/engine/filters";
 import AladinBackground from "@/features/sky-viewer/AladinBackground";
 import { ALLWISE_HIPS_URL } from "@/features/sky-viewer/aladinDocument";
 import { skyData } from "@/services";
-import MarkerLayer, { type Marker } from "./components/MarkerLayer";
-import PreviewCard from "./components/PreviewCard";
-import { matchObject } from "./objectsMatch";
-import { skyToImage } from "./projection";
-import PanZoom from "./components/PanZoom";
-import CollapsiblePanel from "./components/CollapsiblePanel";
-import TopRightTools from "./components/TopRightTools";
-import PreviewCredit from "./components/PreviewCredit";
-import EpochLayer from "./components/EpochLayer";
-import PlaybackBar from "./components/PlaybackBar";
-import TrailLayer from "./components/TrailLayer";
-import ModeToggle, { type ViewMode } from "./components/ModeToggle";
-import SkyStage from "./components/SkyStage";
-import { skyCssFilter } from "./components/skyFilters";
+import MarkerLayer, { type Marker } from "./components/epochs/MarkerLayer";
+import PreviewCard from "./components/panel/PreviewCard";
+import { matchObject } from "@/features/preview/model/objectsMatch";
+import { skyToImage } from "@/features/preview/model/projection";
+import PanZoom from "./components/epochs/PanZoom";
+import CollapsiblePanel from "./components/panel/CollapsiblePanel";
+import TopRightTools from "./components/search/TopRightTools";
+import PreviewCredit from "./components/panel/PreviewCredit";
+import EpochLayer from "./components/epochs/EpochLayer";
+import PlaybackBar from "./components/epochs/PlaybackBar";
+import TrailLayer from "./components/epochs/TrailLayer";
+import ModeToggle, { type ViewMode } from "./components/panel/ModeToggle";
+import SkyStage from "./components/sky/SkyStage";
+import { skyCssFilter } from "./components/sky/skyFilters";
 import { useEpochClock } from "./hooks/useEpochClock";
-import { positionAt, trackPoints } from "./trajectory";
+import { positionAt, trackPoints } from "@/features/preview/model/trajectory";
 
 /** A dónde mira el mosaico. `nonce` cambia en cada búsqueda para volver a ir aunque sea al mismo punto. */
 type SkyTarget = { raDeg: number; decDeg: number; fovDeg: number; nonce: number };
@@ -66,9 +66,9 @@ export default function PreviewPanel() {
   const [menuSection, setMenuSection] = useState<number | null>(0);
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [revision, setRevision] = useState(0);
-  const [mode, setMode] = useState<ViewMode>("epochs");
+  const [mode, setMode] = useState<ViewMode>("sky")
   const [skyTarget, setSkyTarget] = useState<SkyTarget>(ALL_SKY);
-  const [skyOpened, setSkyOpened] = useState(false); // el mapa se crea la primera vez que se entra
+  const [skyOpened, setSkyOpened] = useState(true); //// el mapa se crea la primera vez que se entra
   const [skyFailed, setSkyFailed] = useState(false); // si falla, se usa el visor básico de Felix
 
   useEffect(() => {

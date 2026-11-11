@@ -2,8 +2,8 @@
 
 import Box from "@mui/material/Box";
 import type { Frame } from "@/contracts";
-import { skyToImage } from "../projection";
-import type { SkyPoint } from "../trajectory";
+import { skyToImage } from "@/features/preview/model/projection";
+import type { SkyPoint } from "@/features/preview/model/trajectory";
 
 type Props = {
   frame: Frame;

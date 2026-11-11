@@ -7,7 +7,7 @@ import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
 import type { MovingObject } from "@/contracts";
-import { KIND_LABELS } from "../labels";
+import { KIND_LABELS } from "@/features/preview/model/labels";
 
 type Props = {
   objects: MovingObject[];

@@ -10,7 +10,7 @@ import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import type { Epoch } from "@/contracts";
 import { eter } from "@/theme/theme";
-import { dateAt } from "../trajectory";
+import { dateAt } from "@/features/preview/model/trajectory";
 
 type Props = {
   epochs: Epoch[];
