@@ -123,6 +123,20 @@ def list_objects(q: str | None = None) -> list[dict]:
                 "observations": associated_observations,
             }
         )
+        
+    objects.append(
+            {
+                "id": make_object_id("M101"),
+                "name": "M101",
+                "observation_count": 0,
+                "detectors": [],
+                "observations": [],
+                "science_preview": {
+                    "title": "M101 — Canal 63",
+                    "description": "Imagen del canal, cobertura y máscara de calidad.",
+            },
+        }
+    )
 
 # ESTA ES LA PARTE QUE APLICA EL FILTRO POR NOMBRE.
     if q is not None:

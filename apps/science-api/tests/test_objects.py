@@ -43,7 +43,7 @@ def sample_catalog(monkeypatch):
 
 
 def test_list_groups_six_observations(sample_catalog):
-    response = client.get("/api/v1/objects")
+    response = client.get("/api/v1/objects", params={"q": "SIMP"})
 
     assert response.status_code == 200
 
@@ -131,11 +131,11 @@ def test_counts_objects_separately_from_observations(
     data = response.json()
 
     assert response.status_code == 200
-    assert data["total"] == 2
+    assert data["total"] == 3
     assert sorted(
         item["observation_count"]
         for item in data["objects"]
-    ) == [2, 6]
+    ) == [0, 2, 6]
 
 
 def test_ids_are_stable_when_order_changes(
@@ -187,10 +187,13 @@ def test_empty_catalog(monkeypatch):
     response = client.get("/api/v1/objects")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "total": 0,
-        "objects": [],
-    }
+
+    data = response.json()
+
+    assert data["total"] == 1
+    assert len(data["objects"]) == 1
+    assert data["objects"][0]["name"] == "M101"
+    assert data["objects"][0]["observation_count"] == 0
 
 
 def test_objects_appear_in_openapi():
