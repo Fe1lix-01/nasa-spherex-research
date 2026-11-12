@@ -10,47 +10,95 @@
       "id": "r-dra",
       "kind": "star",
       "name": "R Draconis",
-      "summary": "Estrella variable de tipo Mira: una gigante roja que pulsa y cambia mucho de brillo a lo largo de unos 245 días. Es tan brillante para SPHEREx que satura el detector: los píxeles negros del centro son un artefacto de saturación, no parte del objeto, y por eso el cambio de luz entre épocas no se puede medir con estas imágenes. Se muestra como ejemplo de un objeto demasiado brillante para el instrumento.",
+      "summary": "Estrella variable de tipo Mira: una gigante roja que pulsa y cambia mucho de brillo a lo largo de unos 245 días. Como RW Aurigae, aquí lo que se observa entre épocas es el cambio de luz, no de posición. Es tan brillante que el centro satura el detector de SPHEREx, así que el núcleo se muestra en blanco: es un límite de la medición, no un hueco real.",
       "positions": [
         {
           "epochId": "e1",
-          "observedAt": "2025-04-24",
-          "ra": 248.167243,
+          "observedAt": "2025-06-08",
+          "ra": 248.167241,
           "dec": 66.755023,
           "imageUrl": "/candidates/r-dra/e1.png",
-          "fovDeg": 0.0733
+          "fovDeg": 0.08
         },
         {
           "epochId": "e2",
-          "observedAt": "2025-06-12",
-          "ra": 248.167241,
+          "observedAt": "2025-07-02",
+          "ra": 248.16724,
           "dec": 66.755023,
           "imageUrl": "/candidates/r-dra/e2.png",
-          "fovDeg": 0.02008
+          "fovDeg": 0.08
         },
         {
           "epochId": "e3",
-          "observedAt": "2025-12-26",
-          "ra": 248.167233,
+          "observedAt": "2025-11-18",
+          "ra": 248.167235,
           "dec": 66.755024,
           "imageUrl": "/candidates/r-dra/e3.png",
-          "fovDeg": 0.04429
+          "fovDeg": 0.08
         },
         {
           "epochId": "e4",
-          "observedAt": "2026-02-20",
-          "ra": 248.167231,
+          "observedAt": "2025-12-14",
+          "ra": 248.167234,
           "dec": 66.755024,
           "imageUrl": "/candidates/r-dra/e4.png",
-          "fovDeg": 0.07663
+          "fovDeg": 0.08
         },
         {
           "epochId": "e5",
-          "observedAt": "2026-04-17",
-          "ra": 248.167229,
-          "dec": 66.755024,
+          "observedAt": "2026-06-23",
+          "ra": 248.167226,
+          "dec": 66.755025,
           "imageUrl": "/candidates/r-dra/e5.png",
-          "fovDeg": 0.07003
+          "fovDeg": 0.08
+        }
+      ]
+    },
+    {
+      "id": "kapteyn",
+      "kind": "star",
+      "name": "Estrella de Kapteyn",
+      "summary": "Subenana roja a unos 13 años luz, una de las estrellas con mayor movimiento propio del cielo: se desplaza unos 8.7 segundos de arco por año. Pertenece al halo de la galaxia, es muy antigua y viaja a gran velocidad. Brilla bien en el infrarrojo cercano, que es lo que mide SPHEREx. Las imágenes son recortes reales de SPHEREx (IRSA) y la posición de cada época se calcula con su movimiento propio catalogado. Es tan brillante que el centro satura el detector, así que el núcleo se muestra en blanco: es un límite de la medición, no un hueco real.",
+      "positions": [
+        {
+          "epochId": "e1",
+          "observedAt": "2025-08-16",
+          "ra": 77.984532,
+          "dec": -45.059047,
+          "imageUrl": "/candidates/kapteyn/e1.png",
+          "fovDeg": 0.08
+        },
+        {
+          "epochId": "e2",
+          "observedAt": "2025-09-05",
+          "ra": 77.984673,
+          "dec": -45.059135,
+          "imageUrl": "/candidates/kapteyn/e2.png",
+          "fovDeg": 0.08
+        },
+        {
+          "epochId": "e3",
+          "observedAt": "2026-02-23",
+          "ra": 77.985866,
+          "dec": -45.059874,
+          "imageUrl": "/candidates/kapteyn/e3.png",
+          "fovDeg": 0.08
+        },
+        {
+          "epochId": "e4",
+          "observedAt": "2026-08-17",
+          "ra": 77.987092,
+          "dec": -45.060635,
+          "imageUrl": "/candidates/kapteyn/e4.png",
+          "fovDeg": 0.08
+        },
+        {
+          "epochId": "e5",
+          "observedAt": "2026-09-07",
+          "ra": 77.987239,
+          "dec": -45.060726,
+          "imageUrl": "/candidates/kapteyn/e5.png",
+          "fovDeg": 0.08
         }
       ]
     },

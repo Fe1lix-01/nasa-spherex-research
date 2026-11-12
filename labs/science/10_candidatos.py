@@ -51,6 +51,7 @@ REFERENCE_DATE = "2026-03-01"
 
 PNG_SIZE_PX = 512  # a cuánto se amplía el PNG (con suavizado); no agrega detalle real
 MAX_RESULTS = 500
+SPHEREX_PIXEL_DEG = 6.2 / 3600  # tamaño de un píxel de SPHEREx, en grados
 
 
 # ---------------------------------------------------------------- SIMBAD
@@ -285,14 +286,127 @@ def read_image(fits_path: Path):
         wcs = WCS(hdu.header)
         ny, nx = image.shape
         ra_c, dec_c = wcs.all_pix2world(nx / 2, ny / 2, 0)
-        fov = abs(wcs.pixel_scale_matrix[0, 0]) * max(nx, ny)
+        fov = float(np.sqrt(abs(np.linalg.det(wcs.pixel_scale_matrix)))) * max(nx, ny)
         return image, float(ra_c), float(dec_c), float(fov), wcs
+
+
+class NorthUpGrid:
+    """Rejilla del cielo con el norte arriba y el este a la izquierda, centrada en (ra0, dec0).
+
+    Proyección gnomónica (la misma de los mapas astronómicos, TAN). Sirve de "WCS" simple para
+    las imágenes ya reproyectadas: all_world2pix y all_pix2world, con origen 0.
+    """
+
+    def __init__(self, ra0: float, dec0: float, scale_deg: float, n: int):
+        self.ra0, self.dec0 = np.radians(ra0), np.radians(dec0)
+        self.scale = np.radians(scale_deg)
+        self.n = n
+        self.c = (n - 1) / 2
+
+    def all_pix2world(self, x, y, origin=0):
+        xi = -(np.asarray(x, dtype=float) - self.c) * self.scale
+        eta = (np.asarray(y, dtype=float) - self.c) * self.scale
+        rho = np.hypot(xi, eta)
+        c = np.arctan(rho)
+        rho_safe = np.where(rho == 0, 1.0, rho)
+        sin_dec = np.cos(c) * np.sin(self.dec0) + eta * np.sin(c) * np.cos(self.dec0) / rho_safe
+        dec = np.arcsin(np.clip(sin_dec, -1, 1))
+        ra = self.ra0 + np.arctan2(
+            xi * np.sin(c), rho_safe * np.cos(self.dec0) * np.cos(c) - eta * np.sin(self.dec0) * np.sin(c)
+        )
+        return np.degrees(ra) % 360.0, np.degrees(dec)
+
+    def all_world2pix(self, ra, dec, origin=0):
+        ra = np.radians(np.asarray(ra, dtype=float))
+        dec = np.radians(np.asarray(dec, dtype=float))
+        d = ra - self.ra0
+        cosc = np.sin(self.dec0) * np.sin(dec) + np.cos(self.dec0) * np.cos(dec) * np.cos(d)
+        xi = np.cos(dec) * np.sin(d) / cosc
+        eta = (np.cos(self.dec0) * np.sin(dec) - np.sin(self.dec0) * np.cos(dec) * np.cos(d)) / cosc
+        return self.c - xi / self.scale, self.c + eta / self.scale
+
+
+def to_north_up(image: np.ndarray, wcs, ra0: float, dec0: float, size_deg: float):
+    """Reproyecta el recorte a una rejilla con el norte arriba, centrada EXACTO en (ra0, dec0).
+
+    Las imágenes de SPHEREx vienen giradas (sobre todo cerca de los polos eclípticos, donde el
+    giro cambia de una toma a otra y puede ser de casi 90 grados). Sin reproyectar, el PNG no
+    coincide con el cielo del visor. Las partes fuera de la imagen original quedan como NaN
+    (se pintan en gris).
+    """
+    from scipy.ndimage import map_coordinates
+
+    scale = SPHEREX_PIXEL_DEG / 2  # se muestrea al doble de resolución para no perder nitidez
+    n = int(round(size_deg / scale))
+    grid = NorthUpGrid(ra0, dec0, scale, n)
+    yy, xx = np.mgrid[0:n, 0:n]
+    ra, dec = grid.all_pix2world(xx, yy, 0)
+    try:
+        sx, sy = wcs.all_world2pix(ra, dec, 0)
+    except Exception:
+        sx, sy = wcs.wcs_world2pix(ra, dec, 0)
+
+    valido = np.isfinite(image)
+    datos = map_coordinates(np.where(valido, image, 0.0), [sy, sx], order=1, mode="constant", cval=0.0)
+    mascara = map_coordinates(valido.astype(float), [sy, sx], order=1, mode="constant", cval=0.0)
+    return np.where(mascara > 0.99, datos, np.nan), grid
+
+
+def is_complete(fits_path: Path, size_deg: float) -> bool:
+    """¿El recorte salió completo? IRSA recorta la caja al borde de la imagen: si el objeto
+    queda cerca del borde del detector, el recorte sale más chico (a veces de 2 píxeles) y el
+    centro ya no es el objeto. Esas épocas no sirven y se reemplazan por otra fecha."""
+    try:
+        with fits.open(fits_path) as hdul:
+            ny, nx = hdul["IMAGE"].data.shape
+    except Exception:
+        return False
+    esperado = size_deg / SPHEREX_PIXEL_DEG
+    return min(ny, nx) >= 0.85 * esperado
 
 
 def robust_sigma(values: np.ndarray) -> float:
     """Ruido típico, poco afectado por estrellas brillantes (MAD escalado)."""
     v = values[np.isfinite(values)]
     return float(1.4826 * np.median(np.abs(v - np.median(v))))
+
+
+def fill_saturated(image: np.ndarray) -> np.ndarray:
+    """Rellena el núcleo saturado de las estrellas muy brillantes.
+
+    En una estrella que satura el detector, los píxeles del centro vienen vacíos (NaN) o con
+    valores absurdamente bajos, y en el PNG aparecía un hueco negro justo donde está lo más
+    brillante. Si un píxel malo tiene cerca (a pocos píxeles) una fuente muy brillante (más de
+    50 sigma), se pinta con el valor de la vecina más brillante, es decir, blanco: es una
+    corrección solo de visualización, no recupera la medida real del núcleo. Los píxeles malos
+    lejos de cualquier fuente brillante se dejan vacíos.
+    """
+    from scipy.ndimage import maximum_filter
+
+    finite = np.isfinite(image)
+    if not finite.any():
+        return image
+    mediana = float(np.nanmedian(image))
+    resta = image - mediana
+    sigma = robust_sigma(resta)
+    if sigma <= 0:
+        return image
+
+    malos = ~finite | (resta < -5 * sigma)
+    if not malos.any():
+        return image
+
+    salida = image.copy()
+    valores = np.where(malos, -1e30, np.where(finite, resta, -1e30))
+    for _ in range(8):  # se avanza hacia adentro, de a 3 píxeles por vuelta
+        cerca = maximum_filter(valores, size=7)
+        rellenar = malos & (cerca > 50 * sigma)
+        if not rellenar.any():
+            break
+        salida[rellenar] = mediana + cerca[rellenar]
+        valores[rellenar] = cerca[rellenar]
+        malos = malos & ~rellenar
+    return salida
 
 
 def clean_image(image: np.ndarray) -> tuple[np.ndarray, float]:
@@ -324,6 +438,11 @@ def common_limits(images: list[np.ndarray], sigmas: list[float]) -> tuple[float,
 
 
 def save_png(image: np.ndarray, vmin: float, vmax: float, png_path: Path) -> None:
+    # Recorte cuadrado centrado: así el PNG nunca se estira al agrandarlo.
+    ny, nx = image.shape
+    m = min(ny, nx)
+    y0, x0 = (ny - m) // 2, (nx - m) // 2
+    image = image[y0 : y0 + m, x0 : x0 + m]
     stretch = AsinhStretch(a=0.1)
     finite = np.isfinite(image)
     norm = np.zeros_like(image)
@@ -492,33 +611,85 @@ def main() -> None:
             "SPHEREx no ha cubierto esa posición en este detector. Prueba otro con --detector."
         )
 
-    chosen = pick_spread(observations, args.epochs)
+    epocas_cache = cache_dir / f"epocas_{detector}_{size_deg}_{args.epochs}.json"
+    if usar_cache and epocas_cache.exists():
+        chosen = json.loads(epocas_cache.read_text(encoding="utf-8"))
+        print(f"  Épocas tomadas del caché local: {epocas_cache.name}")
+    else:
+        chosen = pick_spread(observations, args.epochs)
     span = chosen[-1]["mjd"] - chosen[0]["mjd"]
     print(f"  Épocas elegidas: {len(chosen)} (abarcan {span:.1f} días)")
 
     print(f"\n4. Recortes de {size_deg}°...")
-    descargadas = []
+    usadas = {r["uri"] for r in chosen}
+    finales = []
     for i, row in enumerate(chosen, start=1):
         fits_path = output_dir / f"e{i}.fits"
-        if not fits_path.exists():
-            if args.sin_red:
-                print(f"  Época {i}: no está descargada y se pidió --sin-red; se omite.")
-                continue
-            print(f"  Época {i} ({row['utc'][:19]}): descargando...")
-            try:
-                download_cutout(row["uri"], ra_ref, dec_ref, size_deg, fits_path)
-            except Exception as error:
-                print(f"    No se pudo descargar, se omite: {error}")
-                continue
-        else:
-            print(f"  Época {i} ({row['utc'][:19]}): ya estaba descargada.")
-        descargadas.append((i, row, fits_path))
+        reemplazos = 0
+        while True:
+            if not fits_path.exists():
+                if args.sin_red:
+                    print(f"  Época {i}: no está descargada y se pidió --sin-red; se omite.")
+                    break
+                print(f"  Época {i} ({row['utc'][:19]}): descargando...")
+                try:
+                    download_cutout(row["uri"], ra_ref, dec_ref, size_deg, fits_path)
+                except Exception as error:
+                    print(f"    No se pudo descargar, se omite: {error}")
+                    break
+            else:
+                print(f"  Época {i} ({row['utc'][:19]}): ya estaba descargada.")
+
+            if is_complete(fits_path, size_deg):
+                finales.append((row, fits_path))
+                break
+
+            print("    Recorte incompleto: el objeto queda en el borde del detector en esa toma.")
+            print("    Se descarta y se busca otra fecha cercana.")
+            fits_path.unlink(missing_ok=True)
+            libres = [r for r in observations if r["uri"] not in usadas]
+            if args.sin_red or not libres or reemplazos >= 15:
+                print("    No hay reemplazo disponible; se omite esta época.")
+                break
+            row = min(libres, key=lambda r: abs(r["mjd"] - row["mjd"]))
+            usadas.add(row["uri"])
+            reemplazos += 1
+
+    # Orden cronológico y numeración e1..eN (un reemplazo puede caer fuera de orden).
+    finales.sort(key=lambda t: t[0]["mjd"])
+    for k, (row, ruta) in enumerate(finales, start=1):
+        ruta.replace(output_dir / f"_tmp{k}.fits")
+    descargadas = []
+    for k, (row, _) in enumerate(finales, start=1):
+        destino = output_dir / f"e{k}.fits"
+        (output_dir / f"_tmp{k}.fits").replace(destino)
+        descargadas.append((k, row, destino))
+    for sobrante in output_dir.glob("e*.fits"):
+        if int(sobrante.stem[1:]) > len(descargadas):
+            sobrante.unlink(missing_ok=True)
+    for png in output_dir.glob("e*.png"):  # imágenes viejas de otra corrida
+        try:
+            png.unlink()
+        except OSError:
+            pass
+    if descargadas and not args.sin_red:
+        epocas_cache.write_text(
+            json.dumps([row for _, row, _ in descargadas], indent=2), encoding="utf-8"
+        )
 
     if not descargadas:
         raise SystemExit("No se pudo descargar ninguna época. Intenta más tarde.")
 
     print("\n5. Restando el fondo y convirtiendo a PNG (mismo contraste en todas las épocas)...")
-    leidas = [read_image(fits_path) for _, _, fits_path in descargadas]
+    leidas = []
+    for k, _, fits_path in descargadas:
+        image, _, _, _, wcs = read_image(fits_path)
+        image = fill_saturated(image)
+        m = wcs.pixel_scale_matrix
+        giro = float(np.degrees(np.arctan2(m[1, 0], m[0, 0])))
+        print(f"  e{k}: giro del recorte original respecto al norte ≈ {giro:.0f}°; se reproyecta con el norte arriba")
+        reproyectada, grid = to_north_up(image, wcs, ra_ref, dec_ref, size_deg)
+        leidas.append((reproyectada, ra_ref, dec_ref, size_deg, grid))
     limpias, sigmas = [], []
     for image, *_ in leidas:
         limpia, sigma = clean_image(image)

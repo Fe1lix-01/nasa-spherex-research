@@ -88,6 +88,24 @@ TARGETS: dict[str, Target] = {
         ),
         respaldo={"ra": 76.9560675, "dec": 30.40132611, "pmra": 2.641, "pmdec": -27.398, "plx": 6.4062},
     ),
+    "kapteyn": Target(
+        key="kapteyn",
+        alias=("Kapteyn's star", "GJ 191", "HD 33793", "CD-44 1773"),
+        name="Estrella de Kapteyn",
+        kind="star",
+        summary=(
+            "Subenana roja a unos 13 años luz, una de las estrellas con mayor movimiento propio "
+            "del cielo: se desplaza unos 8.7 segundos de arco por año. Pertenece al halo de la "
+            "galaxia, es muy antigua y viaja a gran velocidad. Brilla bien en el infrarrojo "
+            "cercano, que es lo que mide SPHEREx. Las imágenes son recortes reales de SPHEREx "
+            "(IRSA) y la posición de cada época se calcula con su movimiento propio catalogado. "
+            "Es tan brillante que el centro satura el detector, así que el núcleo se muestra en "
+            "blanco: es un límite de la medición, no un hueco real."
+        ),
+        # Solo movimiento propio y paralaje (aprox., Hipparcos/Gaia). La posición NO se escribe a
+        # mano: se resuelve por nombre en SIMBAD/Sesame para evitar apuntar a otro lugar.
+        respaldo={"pmra": 6505.1, "pmdec": -5731.0, "plx": 254.2},
+    ),
     "r-dra": Target(
         key="r-dra",
         alias=("R Dra", "V* R Dra"),
@@ -95,10 +113,10 @@ TARGETS: dict[str, Target] = {
         kind="star",
         summary=(
             "Estrella variable de tipo Mira: una gigante roja que pulsa y cambia mucho de brillo a "
-            "lo largo de unos 245 días. Es tan brillante para SPHEREx que satura el detector: los "
-            "píxeles negros del centro son un artefacto de saturación, no parte del objeto, y por "
-            "eso el cambio de luz entre épocas no se puede medir con estas imágenes. Se muestra "
-            "como ejemplo de un objeto demasiado brillante para el instrumento."
+            "lo largo de unos 245 días. Como RW Aurigae, aquí lo que se observa entre épocas es el "
+            "cambio de luz, no de posición. Es tan brillante que el centro satura el detector de "
+            "SPHEREx, así que el núcleo se muestra en blanco: es un límite de la medición, no un "
+            "hueco real."
         ),
         # Sin respaldo: la posición se resuelve por nombre. Su movimiento propio es pequeño, así
         # que si no se consigue, el script avanza con movimiento cero y lo avisa.
