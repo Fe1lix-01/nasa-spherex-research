@@ -7,7 +7,7 @@ import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
 import FileUploadOutlined from "@mui/icons-material/FileUploadOutlined";
 import HelpOutlined from "@mui/icons-material/HelpOutlined";
-import { eter } from "@/theme/theme";
+import { eter, glassPanel } from "@/theme/theme";
 import type { ControlOption } from "../types";
 import FilterChips from "./FilterChips";
 import LabeledSlider from "./LabeledSlider";
@@ -67,12 +67,11 @@ export default function ControlPanel({
       aria-label="Controles del visor"
       elevation={0}
       sx={{
+        ...glassPanel,
         borderRadius: "28px",
-        border: `1px solid ${eter.line}`,
-        backgroundColor: eter.panelGlass,
+        // MUI agrega un degradado claro a los Paper en modo oscuro; se anula para
+        // que el vidrio se vea parejo.
         backgroundImage: "none",
-        backdropFilter: "blur(24px)",
-        boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
         p: { xs: 2.5, sm: 3 },
       }}
     >
