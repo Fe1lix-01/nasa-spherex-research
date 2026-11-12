@@ -26,12 +26,15 @@ export const eter = {
   rail: "rgba(255,255,255,0.16)", // riel
   accentGlow: "rgba(255,210,76,0.18)", // resplandor del control (ámbar con transparencia)
   accentGlowStrong: "rgba(255,210,76,0.28)", // resplandor al pasar el mouse o enfocar
+
+  // --- Foco y errores ---
+  focusRing: "rgba(255,255,255,0.6)", // anillo de foco visible con el teclado
+  danger: "#ff9aa8", // mensajes de error
 } as const;
 
 const theme = createTheme({
   palette: {
     mode: "dark",
-primary: { main: eter.accent, contrastText: eter.onAccent },    background: { default: eter.ink, paper: eter.panel },
     primary: { main: eter.accent, contrastText: eter.onAccent },
     background: { default: eter.ink, paper: eter.panel },
     text: {
