@@ -7,5 +7,6 @@ export const KIND_LABELS: Record<ObjectKind, string> = {
   star: "Estrella",
   brown_dwarf: "Enana marrón",
   planet_candidate: "Candidato a planeta",
+  nebula: "Nebulosa",
   unknown: "Objeto desconocido",
 };

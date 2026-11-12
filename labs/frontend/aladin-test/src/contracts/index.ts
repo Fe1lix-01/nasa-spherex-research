@@ -35,7 +35,7 @@ export type SkyPosition = {
 };
 
 /** Tipos de objeto. Los valores van en inglés; la interfaz los traduce al español. */
-export type ObjectKind = "asteroid" | "comet" | "star" | "brown_dwarf" | "planet_candidate" | "unknown";
+export type ObjectKind = "asteroid" | "comet" | "star" | "brown_dwarf" | "planet_candidate" | "nebula" | "unknown";
 
 /** Un objeto que cambia de posición entre épocas, con su predicción si se pudo calcular. */
 export type MovingObject = {
