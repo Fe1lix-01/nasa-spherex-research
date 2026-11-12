@@ -1,7 +1,6 @@
 "use client";
 
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import SegmentedControl from "@/components/SegmentedControl/SegmentedControl";
 import { eter } from "@/theme/theme";
 
 export type ViewMode = "sky" | "epochs";
@@ -11,40 +10,20 @@ type Props = {
   onChange: (mode: ViewMode) => void;
 };
 
+const OPTIONS = [
+  { value: "sky", label: "Mosaico del cielo" },
+  { value: "epochs", label: "Épocas simuladas" },
+] as const;
+
 /** Cambia entre el mosaico del cielo (Aladin) y las épocas simuladas con animación. */
 export default function ModeToggle({ value, onChange }: Props) {
   return (
-    <ToggleButtonGroup
-      exclusive
-      size="small"
+    <SegmentedControl
       value={value}
-      onChange={(_, next: ViewMode | null) => {
-        if (next !== null) onChange(next);
-      }}
-      aria-label="Modo de vista"
+      onChange={onChange}
+      options={OPTIONS}
+      ariaLabel="Modo de vista"
       sx={{ alignSelf: "flex-start", bgcolor: eter.panelGlass, backdropFilter: "blur(10px)" }}
-    >
-      {(
-        [
-          ["sky", "Mosaico del cielo"],
-          ["epochs", "Épocas simuladas"],
-        ] as const
-      ).map(([mode, label]) => (
-        <ToggleButton
-          key={mode}
-          value={mode}
-          sx={{
-            px: 1.5,
-            py: 0.5,
-            fontSize: 13,
-            color: eter.textMuted,
-            borderColor: eter.lineStrong,
-            "&.Mui-selected": { color: eter.accent, bgcolor: eter.accentGlow },
-          }}
-        >
-          {label}
-        </ToggleButton>
-      ))}
-    </ToggleButtonGroup>
+    />
   );
 }

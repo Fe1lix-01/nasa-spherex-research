@@ -3,8 +3,7 @@
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Slider from "@mui/material/Slider";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import SegmentedControl from "@/components/SegmentedControl/SegmentedControl";
 import Typography from "@mui/material/Typography";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
@@ -22,7 +21,7 @@ type Props = {
   onSpeed: (speed: number) => void;
 };
 
-const SPEEDS = [0.5, 1, 2];
+const SPEEDS = [0.5, 1, 2].map((s) => ({ value: s, label: `${s}×` }));
 
 /** Barra de reproducción: play/pausa, línea de tiempo con las épocas, fecha y velocidad. */
 export default function PlaybackBar({ epochs, t, playing, speed, onToggle, onSeek, onSpeed }: Props) {
@@ -84,33 +83,14 @@ export default function PlaybackBar({ epochs, t, playing, speed, onToggle, onSee
         {dateAt(epochs, t)}
       </Typography>
 
-      <ToggleButtonGroup
-        exclusive
-        size="small"
+            <SegmentedControl
         value={speed}
-        onChange={(_, value: number | null) => {
-          if (value !== null) onSpeed(value);
-        }}
-        aria-label="Velocidad"
+        onChange={onSpeed}
+        options={SPEEDS}
+        ariaLabel="Velocidad"
+        size="sm"
         sx={{ display: { xs: "none", sm: "flex" }, mb: 0.5 }}
-      >
-        {SPEEDS.map((s) => (
-          <ToggleButton
-            key={s}
-            value={s}
-            sx={{
-              px: 1,
-              py: 0.25,
-              fontSize: 12,
-              color: eter.textMuted,
-              borderColor: eter.lineStrong,
-              "&.Mui-selected": { color: eter.accent, bgcolor: eter.accentGlow },
-            }}
-          >
-            {s}×
-          </ToggleButton>
-        ))}
-      </ToggleButtonGroup>
+      />
     </Box>
   );
 }
