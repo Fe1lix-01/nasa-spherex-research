@@ -8,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
 import type { MovingObject } from "@/contracts";
 import { KIND_LABELS } from "@/features/preview/model/labels";
+import { eter } from "@/theme/theme";
 
 type Props = {
   objects: MovingObject[];
@@ -21,52 +22,56 @@ type Props = {
   disabled?: boolean;
 };
 
-const CHEVRON = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%23baa3ff' stroke-width='2'/></svg>")`;
+// Chevron del selector: blanco tenue, para que no sea un color aparte de la paleta.
+const CHEVRON = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%23ffffff' stroke-opacity='0.6' stroke-width='1.5'/></svg>")`;
+
+// Superficie de vidrio compartida por el selector y los botones. Solo propiedades CSS
+// normales (sin atajos de sx como `px`) para poder usarla en `styled` y en `sx`.
+const glassSurface = {
+  height: 40,
+  borderRadius: "12px",
+  border: `1px solid ${eter.lineStrong}`,
+  backgroundColor: eter.glass,
+  backdropFilter: "blur(8px)",
+  color: "#fff",
+  fontSize: 13,
+  "&:hover": { borderColor: eter.lineHover, backgroundColor: eter.hoverFill },
+  "&:focus-visible": { outline: `2px solid ${eter.focusRing}`, outlineOffset: 2 },
+} as const;
 
 const SelectBox = styled("select")({
-  height: 39,
+  ...glassSurface,
   maxWidth: "min(270px, 75vw)",
-  padding: "0 42px 0 14px",
-  borderRadius: 9,
-  border: "1px solid #3b4567",
-  backgroundColor: "#171e33",
-  color: "#fafaff",
-  fontSize: 13,
+  padding: "0 40px 0 14px",
   cursor: "pointer",
   appearance: "none",
   WebkitAppearance: "none",
   backgroundImage: CHEVRON,
   backgroundRepeat: "no-repeat",
   backgroundPosition: "right 14px center",
-  "&:hover": { borderColor: "#baa3ff", backgroundColor: "#202842" },
-  "&:focus-visible": { outline: "2px solid #baa3ff", outlineOffset: 2 },
-  "& option": { backgroundColor: "#171e33", color: "#fafaff" },
+  // La lista desplegable la dibuja el navegador: se le da fondo sólido para que se lea.
+  "& option": { backgroundColor: eter.panel, color: "#fff" },
 });
 
 const FieldInput = styled("input")({
   boxSizing: "border-box",
   width: "100%",
-  padding: "9px 10px",
-  border: "1px solid #515e80",
-  borderRadius: 8,
-  backgroundColor: "#1a2339",
+  padding: "9px 12px",
+  border: `1px solid ${eter.lineStrong}`,
+  borderRadius: 12,
+  backgroundColor: eter.hoverFill,
   color: "#fff",
   fontSize: 13,
-  "&:focus-visible": { outline: "2px solid #baa3ff" },
+  "&:focus-visible": { outline: `2px solid ${eter.focusRing}`, outlineOffset: 1 },
 });
 
 const buttonSx = {
-  height: 39,
+  ...glassSurface,
   minWidth: 0,
   px: 1.75,
-  borderRadius: "9px",
-  border: "1px solid #3b4567",
-  backgroundColor: "#171e33",
-  color: "#fafaff",
-  fontSize: 13,
   fontWeight: 400,
   textTransform: "none",
-  "&:hover": { borderColor: "#baa3ff", backgroundColor: "#202842" },
+  "&.Mui-disabled": { opacity: 0.5, color: "#fff" },
 } as const;
 
 const REGIONS = [
@@ -78,8 +83,8 @@ const REGIONS = [
 ];
 
 /**
-
- * selector de candidatos + Coordenadas + Reiniciar visor + Información.
+ * Herramientas de arriba a la derecha: selector de candidatos o regiones,
+ * Coordenadas, Reiniciar visor e Información.
  */
 export default function TopRightTools({ objects, value, onPickCandidate, onPickRegion, onSearch, onReset, onInfo, disabled }: Props) {
   const [panelOpen, setPanelOpen] = useState(false);
@@ -187,34 +192,36 @@ export default function TopRightTools({ objects, value, onPickCandidate, onPickR
             width: "min(320px, calc(100vw - 32px))",
             boxSizing: "border-box",
             p: 2.5,
-            border: "1px solid #616b91",
+            border: `1px solid ${eter.lineStrong}`,
             borderRadius: "16px",
-            backgroundColor: "rgba(17,24,42,0.94)",
-            boxShadow: "0 18px 55px rgba(0,0,0,0.6)",
-            color: "#f5f5fc",
+            // Mismo vidrio y sombra que el panel de controles del visor.
+            backgroundColor: eter.panelGlass,
+            backdropFilter: "blur(24px)",
+            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+            color: "#fff",
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <Typography sx={{ fontSize: 16, fontWeight: 700 }}>Buscar coordenadas</Typography>
+            <Typography sx={{ fontSize: 16, fontWeight: 500 }}>Buscar coordenadas</Typography>
             <IconButton size="small" aria-label="Cerrar" onClick={() => setPanelOpen(false)} sx={{ color: "#fff" }}>
               <Box component="span" sx={{ fontSize: 16, lineHeight: 1 }}>
                 ✕
               </Box>
             </IconButton>
           </Box>
-          <Typography sx={{ fontSize: 13, color: "#bac5e0", mt: 0.5 }}>Sistema ICRS, coordenadas en grados.</Typography>
+          <Typography sx={{ fontSize: 13, color: eter.textMuted, mt: 0.5 }}>Sistema ICRS, coordenadas en grados.</Typography>
 
-          <Box component="label" sx={{ display: "grid", gap: 0.625, mt: 1.5, fontSize: 13, color: "#c7d0ec" }}>
+          <Box component="label" sx={{ display: "grid", gap: 0.625, mt: 1.5, fontSize: 13, color: eter.textMuted }}>
             Ascensión recta (RA)
             <FieldInput inputMode="decimal" value={ra} onChange={(e) => setRa(e.target.value)} />
           </Box>
-          <Box component="label" sx={{ display: "grid", gap: 0.625, mt: 1.5, fontSize: 13, color: "#c7d0ec" }}>
+          <Box component="label" sx={{ display: "grid", gap: 0.625, mt: 1.5, fontSize: 13, color: eter.textMuted }}>
             Declinación (Dec)
             <FieldInput inputMode="decimal" value={dec} onChange={(e) => setDec(e.target.value)} />
           </Box>
 
           {error && (
-            <Typography role="alert" sx={{ fontSize: 13, color: "#ffc1cb", mt: 1 }}>
+            <Typography role="alert" sx={{ fontSize: 13, color: eter.danger, mt: 1 }}>
               {error}
             </Typography>
           )}
@@ -225,12 +232,13 @@ export default function TopRightTools({ objects, value, onPickCandidate, onPickR
             sx={{
               mt: 2,
               py: 1.25,
-              borderRadius: "8px",
-              backgroundColor: "#8566dc",
-              color: "#fff",
-              fontWeight: 700,
+              borderRadius: "12px",
+              // Acción principal: ámbar sólido, igual que el botón de reproducir.
+              backgroundColor: eter.accent,
+              color: eter.onAccent,
+              fontWeight: 500,
               textTransform: "none",
-              "&:hover": { backgroundColor: "#9878e3" },
+              "&:hover": { backgroundColor: eter.accent, filter: "brightness(1.1)" },
             }}
           >
             Explorar ubicación
