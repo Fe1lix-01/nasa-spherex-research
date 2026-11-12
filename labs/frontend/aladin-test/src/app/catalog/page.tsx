@@ -452,10 +452,26 @@ export default function CatalogPage() {
                     variant="body2"
                     sx={{ color: eter.textMuted, mt: 1 }}
                   >
-                    {selectedObject.observation_count} observaciones
-                    disponibles en los detectores{" "}
-                    {selectedObject.detectors.join(", ")}.
+                       {selectedObject.observation_count === 0
+  ? "Este objeto aún no tiene observaciones FITS asociadas en el catálogo."
+  : `${selectedObject.observation_count} observaciones disponibles en los detectores ${selectedObject.detectors.join(", ")}.`}
                   </Typography>
+
+                  {selectedObject.science_preview && (
+  <section className="mt-6">
+    <Typography variant="h6">
+      {selectedObject.science_preview.title}
+    </Typography>
+    <Typography variant="body2" sx={{ color: eter.textMuted, mt: 1 }}>
+      {selectedObject.science_preview.description}
+    </Typography>
+    <img
+      src="/api/science/m101"
+      alt="M101 en el canal 63, con cobertura y máscara de calidad"
+      className="mt-4 h-auto w-full rounded-lg"
+    />
+  </section>
+)}
 
                   <Divider sx={{ borderColor: eter.line, my: 3 }} />
 

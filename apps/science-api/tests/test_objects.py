@@ -43,7 +43,7 @@ def sample_catalog(monkeypatch):
 
 
 def test_list_groups_six_observations(sample_catalog):
-    response = client.get("/api/v1/objects")
+    response = client.get("/api/v1/objects", params={"q": "SIMP"})
 
     assert response.status_code == 200
 
@@ -116,22 +116,32 @@ def test_search_without_matches(sample_catalog):
 def test_counts_objects_separately_from_observations(
     monkeypatch, sample_catalog
 ):
+    """Comprueba que los objetos y sus observaciones se cuentan por separado."""
+
+    # Combina las seis observaciones del catálogo de prueba
+    # con dos observaciones pertenecientes a otro objeto.
     observations = sample_catalog + make_observations(
         "Objeto de prueba B",
         ["D1", "D2"],
     )
 
+    # Sustituye temporalmente el catálogo local por los datos de prueba.
     monkeypatch.setattr(
         observations_service,
         "list_observations",
         lambda: observations,
     )
 
+    # Consulta el catálogo completo.
     response = client.get("/api/v1/objects")
     data = response.json()
 
     assert response.status_code == 200
+
+    # Existen dos objetos astronómicos diferentes.
     assert data["total"] == 2
+
+    # Cada objeto conserva su cantidad de observaciones.
     assert sorted(
         item["observation_count"]
         for item in data["objects"]
@@ -178,19 +188,25 @@ def test_unavailable_catalog_returns_503(monkeypatch, url):
 
 
 def test_empty_catalog(monkeypatch):
+    """Comprueba que un catálogo sin observaciones devuelve una lista vacía."""
+
+    # Simula que no existen observaciones locales.
     monkeypatch.setattr(
         observations_service,
         "list_observations",
         lambda: [],
     )
 
+    # Consulta el catálogo.
     response = client.get("/api/v1/objects")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "total": 0,
-        "objects": [],
-    }
+
+    data = response.json()
+
+    # No debe inventarse un objeto M101 cuando no existe información.
+    assert data["total"] == 0
+    assert data["objects"] == []
 
 
 def test_objects_appear_in_openapi():

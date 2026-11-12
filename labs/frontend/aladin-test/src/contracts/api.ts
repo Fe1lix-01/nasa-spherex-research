@@ -55,9 +55,12 @@ export interface AstronomicalObjectSummary {
 }
 
 /** Información completa de un objeto y sus observaciones. */
-export interface AstronomicalObjectDetail
-  extends AstronomicalObjectSummary {
+export interface AstronomicalObjectDetail extends AstronomicalObjectSummary {
   observations: Observation[];
+  science_preview?: {
+    title: string;
+    description: string;
+  } | null;
 }
 
 /** Respuesta del endpoint GET /api/v1/objects. */

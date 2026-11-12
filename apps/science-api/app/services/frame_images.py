@@ -1,10 +1,5 @@
+# Servicio de conversión de imágenes astronómicas FITS a PNG.
 
-"""
-Servicio de conversión de imágenes astronómicas FITS a PNG.
-
-Genera imágenes PNG para visualización sin modificar los archivos
-FITS originales ni alterar sus datos científicos.
-"""
 
 # BytesIO permite generar el PNG en memoria, sin crear archivos temporales.
 from io import BytesIO
@@ -128,9 +123,37 @@ def _normalize_image(data: np.ndarray) -> np.ndarray:
     return pixels
 
 
+def render_image_png(data: np.ndarray) -> bytes:
+    """
+    Convierte directamente una matriz científica 2D en una imagen PNG.
+
+    Esta función puede reutilizarse tanto con imágenes FITS locales
+    como con recortes FITS descargados de servicios remotos.
+
+    Args:
+        data: Matriz bidimensional con los valores de los píxeles.
+
+    Returns:
+        Contenido binario de la imagen PNG.
+
+    Raises:
+        FrameImageError: Si la matriz no contiene una imagen válida.
+    """
+
+    # Normalizamos los valores científicos a intensidades de 8 bits.
+    pixels = _normalize_image(data)
+
+    # Codificamos la matriz normalizada como PNG en memoria.
+    output = BytesIO()
+    Image.fromarray(pixels).save(output, format="PNG")
+
+    # Devolvemos los bytes de la imagen generada.
+    return output.getvalue()
+
+
 def render_frame_png(frame_id: str) -> bytes:
     """
-    Lee un FITS y devuelve su representación PNG en memoria.
+    Lee un FITS local y devuelve su representación PNG en memoria.
 
     Args:
         frame_id: Nombre exacto del archivo FITS.
@@ -160,15 +183,8 @@ def render_frame_png(frame_id: str) -> bytes:
                     "El archivo FITS no contiene datos de imagen"
                 )
 
-            # Normalizamos los valores para producir píxeles de 8 bits.
-            pixels = _normalize_image(data)
-
-        # Codificamos la matriz de píxeles como PNG en memoria.
-        output = BytesIO()
-        Image.fromarray(pixels).save(output, format="PNG")
-
-        # Devolvemos los bytes que enviará la API.
-        return output.getvalue()
+            # Reutilizamos el conversor común para generar el PNG.
+            return render_image_png(data)
 
     except FrameImageError:
         # Conservamos los errores de validación generados por el servicio.

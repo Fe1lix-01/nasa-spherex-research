@@ -1,36 +1,66 @@
-# La importacion de BaseModel permite definir modelos de datos con Pydantic.
-# Y la importacion de Field permite agregar restricciones a sus campos.
+# BaseModel permite definir modelos de datos con Pydantic.
+# Field permite agregar restricciones y valores predeterminados.
 from pydantic import BaseModel, Field
 
-# Aqui se reutilza el modelo de Observacion que ya existe.
-# De esta manera no se repite la definicion de sus campos.
+# Reutilizamos el modelo de observación local existente.
 from app.schemas.observations import Observations
 
-# Esta clase represnta el resumen de un objeto astronomico.
-# y pues es la informacion que aparece en el listado :V.
+# Modelos que representan la información del catálogo remoto.
+from app.schemas.remote_catalog import SpatialAssociation
+from app.schemas.sia import SiaObservation, SiaQuery
+
+
 class AstronomicalObjectSummary(BaseModel):
-    # Se sabe q este es el identificador del objeto.
+    """Información resumida de un objeto astronómico."""
+
+    # Identificador estable y nombre del objeto.
     id: str
-    # Nombre del objeto.
     name: str
-    #Cantidad de los archivos asociados.
+
+    # Conteo total de observaciones locales y remotas.
     observation_count: int = Field(ge=0)
-    # Lista de detectores disponibles.
-    # Ejemplo: ["D1", "D2", "D3"].
+
+    # Conteos separados por procedencia.
+    local_observation_count: int = Field(default=0, ge=0)
+    remote_observation_count: int = Field(default=0, ge=0)
+
+    # Detectores disponibles en las observaciones locales.
     detectors: list[str]
 
-# Hereda todos los campos del resumen:
-# id, name, observation_count y detectors.
-#
-# Además, agrega las observaciones individuales.
-# Se usa para consultar un objeto por su ID.
+
+class SciencePreview(BaseModel):
+    """Metadatos de la vista previa científica."""
+
+    title: str
+    description: str
+
+
 class AstronomicalObjectDetail(AstronomicalObjectSummary):
+    """Información completa de un objeto astronómico."""
+
+    # Observaciones FITS disponibles localmente.
     observations: list[Observations]
 
-# Representa la respuesta del listado completo.
+    # Observaciones obtenidas del catálogo remoto SIA.
+    remote_observations: list[SiaObservation] = Field(
+        default_factory=list
+    )
+
+    # Información de asociación espacial del catálogo remoto.
+    remote_association: SpatialAssociation | None = None
+
+    # Parámetros utilizados en la consulta remota.
+    remote_query: SiaQuery | None = None
+
+    # Vista previa científica, cuando está disponible.
+    science_preview: SciencePreview | None = None
+
+
 class ObjectsResponse(BaseModel):
-     # Cantidad de OBJETOS encontrados después del filtro.
-    # No es la cantidad de archivos FITS.
+    """Respuesta del endpoint que lista los objetos."""
+
+    # Cantidad de objetos después de aplicar el filtro.
     total: int = Field(ge=0)
-    # Lista de resúmenes de los objetos encontrados.
+
+    # Resúmenes de los objetos encontrados.
     objects: list[AstronomicalObjectSummary]

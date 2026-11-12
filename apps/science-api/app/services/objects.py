@@ -1,162 +1,305 @@
 # Permite buscar patrones dentro de los nombres de archivos.
 import re
+
 # uuid5 genera identificadores deterministas:
-# con el mismo nombre y namespace obtenemos el mismo ID.
+# el mismo nombre y namespace producen siempre el mismo ID.
 from uuid import NAMESPACE_URL, uuid5
 
-# Importamos el módulo existente de observaciones.
-# Lo llamamos observations_service para distinguirlo
-# de las listas de observaciones que usamos después.
+# Servicios que proporcionan los catálogos locales y remotos.
 from app.services import observations as observations_service
+from app.services import remote_catalog as remote_catalog_service
 
-# Expresión regular para reconocer los nombres del catálogo.
-# Reconoce el formato de los archivos del catálogo actual.
-# Captura el nombre completo sin dividirlo por espacios.
+
+# Expresión regular para reconocer nombres de objetos en archivos FITS.
+# Captura el nombre completo antes del identificador del detector.
 OBJECT_FILENAME_PATTERN = re.compile(
     r"^(?P<name>.+)_D[1-6]_.+\.fits$"
 )
 
 
 def extract_object_name(filename: str) -> str:
-    """Extrae el nombre del objeto según el formato del catálogo."""
-# Comprueba que el nombre completo coincida con el patrón.
-    match = OBJECT_FILENAME_PATTERN.fullmatch(filename)
-# Si no coincide, no podemos identificarlo con esta convención.
-    if match is None:
-        raise ValueError("Nombre de archivo no reconocido por el catálogo")
+    """Extrae el nombre del objeto según el formato del catálogo FITS."""
 
-# Recupera la parte capturada como "name".
-    # strip() elimina espacios al principio y al final.
+    # Comprueba que el nombre completo coincida con el patrón.
+    match = OBJECT_FILENAME_PATTERN.fullmatch(filename)
+
+    # Rechaza los archivos que no respetan la convención.
+    if match is None:
+        raise ValueError(
+            "Nombre de archivo no reconocido por el catálogo"
+        )
+
+    # Recupera el nombre capturado y elimina espacios exteriores.
     name = match.group("name").strip()
 
- # Evita aceptar un nombre vacío o formado solo por espacios.
+    # Evita aceptar nombres vacíos.
     if not name:
-        raise ValueError("El archivo no contiene un nombre de objeto")
+        raise ValueError(
+            "El archivo no contiene un nombre de objeto"
+        )
 
     return name
 
 
 def make_object_id(name: str) -> str:
-    """Genera un identificador estable y utilizable en URLs."""
-    # El prefijo identifica el uso del nombre dentro del proyecto.
-    #
-    # uuid5 no genera un ID aleatorio:
-    # el mismo texto produce siempre el mismo UUID.
-    #
-    # str() lo convierte a texto para enviarlo en JSON
-    # y utilizarlo dentro de una URL.
+    """Genera un identificador estable para un objeto astronómico."""
 
-    return str(uuid5(NAMESPACE_URL, f"eter:astronomical-object:{name}"))
+    # UUID5 produce el mismo identificador para el mismo nombre.
+    return str(
+        uuid5(
+            NAMESPACE_URL,
+            f"eter:astronomical-object:{name}",
+        )
+    )
+
+
+def _serialize_model(model) -> dict:
+    """Convierte un modelo Pydantic en un diccionario JSON-compatible."""
+
+    # mode="json" convierte tipos especiales como HttpUrl y AwareDatetime.
+    return model.model_dump(mode="json")
 
 
 def list_objects(q: str | None = None) -> list[dict]:
-    """Agrupa las observaciones existentes por nombre de objeto."""
-    # q puede ser texto o None.
-    # None significa que no se proporcionó una búsqueda.
+    """
+    Construye el catálogo unificado de objetos astronómicos.
 
-    # Reutiliza el servicio de Marvin.
-    # No abre nuevamente los FITS ni repite su lógica.
-    observations = observations_service.list_observations()
+    Combina observaciones FITS locales y observaciones SIA remotas
+    registradas para M101.
+    """
 
-    # Diccionario temporal:
-    # cada clave será el nombre de un objeto.
+    # =========================================================
+    # 1. OBTENER Y AGRUPAR OBSERVACIONES LOCALES
+    # =========================================================
+
+    # Reutiliza el servicio existente de observaciones.
+    local_observations = observations_service.list_observations()
+
+    # Diccionario temporal indexado por nombre normalizado.
     grouped = {}
 
-# Recorremos cada observación del catálogo.
-    for observation in observations:
+    # Recorre las observaciones disponibles en el catálogo local.
+    for observation in local_observations:
 
-         # Obtenemos el nombre del objeto desde el archivo.
+        # Extrae el nombre del objeto desde el archivo FITS.
         name = extract_object_name(observation["filename"])
 
+        # Normaliza el nombre para evitar duplicados por capitalización.
+        normalized_name = name.casefold()
 
-# Si es la primera observación de ese objeto,
-        # creamos su grupo.
-        if name not in grouped:
-            grouped[name] = {
-                "id": make_object_id(name),
-                "name": name,
+        # Conserva el nombre canónico para M101.
+        display_name = (
+            "M101"
+            if normalized_name == "m101"
+            else name
+        )
+
+        # Crea el grupo cuando aparece por primera vez.
+        if normalized_name not in grouped:
+            grouped[normalized_name] = {
+                "id": make_object_id(display_name),
+                "name": display_name,
                 "observations": [],
             }
 
-# Agregamos la observación a su grupo.
-        #
-        # Si después aparece otro archivo del mismo objeto,
-        # se agrega aquí en lugar de crear otro objeto.
-        grouped[name]["observations"].append(observation)
+        # Agrega la observación al grupo correspondiente.
+        grouped[normalized_name]["observations"].append(
+            observation
+        )
 
-# Lista final de objetos.
+    # =========================================================
+    # 2. CONSTRUIR OBJETOS LOCALES
+    # =========================================================
+
     objects = []
 
-# Ordenamos los nombres alfabéticamente.
-    # casefold permite ordenar sin dar prioridad
-    # a las diferencias de mayúsculas y minúsculas.
-    for name in sorted(grouped, key=str.casefold):
-        item = grouped[name]
+    # Ordena los nombres para producir resultados consistentes.
+    for normalized_name in sorted(grouped):
 
-# Ordenamos las observaciones por su identificador.
-        # Esto hace que la salida tenga un orden consistente.
+        item = grouped[normalized_name]
+
+        # Ordena las observaciones por su identificador.
         associated_observations = sorted(
             item["observations"],
             key=lambda observation: observation["id"],
         )
 
-# Construimos la información final del objeto.
+        local_count = len(associated_observations)
+
+        # Construye el objeto con sus datos locales.
         objects.append(
             {
                 "id": item["id"],
                 "name": item["name"],
-                # Cuenta cuántos archivos tiene este objeto.
-                "observation_count": len(associated_observations),
-                 # El conjunto {...} elimina detectores repetidos.
-                # sorted() los convierte en una lista ordenada.
-                #
-                # Dos archivos de D1 cuentan como dos
-                # observaciones, pero D1 aparece una sola
-                # vez en la lista de detectores.
+
+                # Conteos separados por procedencia.
+                "local_observation_count": local_count,
+                "remote_observation_count": 0,
+                "observation_count": local_count,
+
+                # Detectores únicos y ordenados.
                 "detectors": sorted(
                     {
                         observation["detector"]
                         for observation in associated_observations
                     }
                 ),
-                 # Conservamos los datos de cada observación.
+
+                # Observaciones FITS locales.
                 "observations": associated_observations,
+
+                # Información remota vacía inicialmente.
+                "remote_observations": [],
+                "remote_association": None,
+                "remote_query": None,
             }
         )
 
-# ESTA ES LA PARTE QUE APLICA EL FILTRO POR NOMBRE.
+    # =========================================================
+    # 3. CARGAR EL REGISTRO REMOTO DE M101
+    # =========================================================
+
+    # El servicio devuelve un RemoteCatalogSnapshot o None.
+    #
+    # Si el archivo no existe, devuelve None.
+    # Si el archivo es inválido, lanza RemoteCatalogError.
+    #
+    # No capturamos ese error: debe llegar al router para producir
+    # una respuesta HTTP 503.
+    remote_snapshot = (
+        remote_catalog_service.load_m101_snapshot()
+    )
+
+    # =========================================================
+    # 4. INTEGRAR LAS OBSERVACIONES REMOTAS DE M101
+    # =========================================================
+
+    # Solo se integra M101 si existe un registro remoto válido.
+    if remote_snapshot is not None:
+
+        # Recupera las observaciones validadas por el esquema SIA.
+        remote_observations = (
+            remote_snapshot.result.observations
+        )
+
+        # Un registro válido sin observaciones no crea un objeto.
+        if remote_observations:
+
+            # Busca si M101 ya existe en el catálogo local.
+            m101 = next(
+                (
+                    item
+                    for item in objects
+                    if item["name"].casefold() == "m101"
+                ),
+                None,
+            )
+
+            # Si no existe localmente, crea el objeto remoto.
+            if m101 is None:
+                m101 = {
+                    "id": make_object_id("M101"),
+                    "name": "M101",
+                    "local_observation_count": 0,
+                    "remote_observation_count": 0,
+                    "observation_count": 0,
+                    "detectors": [],
+                    "observations": [],
+                    "remote_observations": [],
+                    "remote_association": None,
+                    "remote_query": None,
+                }
+
+                objects.append(m101)
+
+            # Serializa las observaciones remotas para la respuesta JSON.
+            serialized_remote_observations = [
+                _serialize_model(observation)
+                for observation in remote_observations
+            ]
+
+            # Calcula los conteos de ambas fuentes.
+            local_count = len(m101["observations"])
+            remote_count = len(serialized_remote_observations)
+
+            # Actualiza M101 sin crear un segundo objeto.
+            m101.update(
+                {
+                    "id": make_object_id("M101"),
+                    "name": "M101",
+
+                    # Conteos independientes.
+                    "local_observation_count": local_count,
+                    "remote_observation_count": remote_count,
+
+                    # Total combinado de observaciones.
+                    "observation_count": (
+                        local_count + remote_count
+                    ),
+
+                    # Observaciones del catálogo remoto.
+                    "remote_observations": (
+                        serialized_remote_observations
+                    ),
+
+                    # Asociación espacial documentada.
+                    "remote_association": _serialize_model(
+                        remote_snapshot.association
+                    ),
+
+                    # Parámetros de la consulta SIA.
+                    "remote_query": _serialize_model(
+                        remote_snapshot.result.query
+                    ),
+
+                    # Información de la vista científica.
+                    "science_preview": {
+                        "title": "M101 — Canal 63",
+                        "description": (
+                            "Imagen del canal, cobertura "
+                            "y máscara de calidad."
+                        ),
+                    },
+                }
+            )
+
+    # =========================================================
+    # 5. APLICAR FILTRO DE BÚSQUEDA
+    # =========================================================
+
     if q is not None:
 
-        # Elimina espacios en los extremos de la búsqueda.
-        # casefold() permite comparar sin distinguir
-        # mayúsculas y minúsculas.
+        # Normaliza el término de búsqueda.
         search = q.strip().casefold()
 
-        # Conserva solamente los objetos cuyo nombre
-        # contiene el texto buscado.
-        #
-        # "in" permite coincidencias parciales:
-        # "simp" está dentro de
-        # "t2 simp j013656.5+093347.3".
+        # Permite coincidencias parciales sin distinguir mayúsculas.
         objects = [
             item
             for item in objects
             if search in item["name"].casefold()
         ]
 
-# Sin coincidencias devuelve [].
-    # Sin filtro devuelve todos los objetos.
-    return objects
+    # =========================================================
+    # 6. DEVOLVER CATÁLOGO UNIFICADO
+    # =========================================================
+
+    # Ordena los objetos alfabéticamente.
+    return sorted(
+        objects,
+        key=lambda item: item["name"].casefold(),
+    )
 
 
 def get_object(object_id: str) -> dict | None:
     """Busca un objeto por su identificador estable."""
-    # Reutiliza la agrupación anterior.
+
+    # Reutiliza el catálogo unificado para recuperar
+    # tanto observaciones locales como información remota.
     for item in list_objects():
-    # Si encontramos el ID, devolvemos el objeto completo.
+
+        # Devuelve el objeto completo si coincide el identificador.
         if item["id"] == object_id:
             return item
 
- # Si ningún objeto coincide, devolvemos None.
-    # El router lo transformará en HTTP 404.
+    # Si no existe, devuelve None para que el router responda 404.
     return None
