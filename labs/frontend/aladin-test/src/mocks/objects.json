@@ -1,7 +1,59 @@
 {
   "simulated": true,
-  "region": { "ra": 209.4201, "dec": 53.9431, "fovDeg": 3.333 },
+  "region": {
+    "ra": 209.4201,
+    "dec": 53.9431,
+    "fovDeg": 3.333
+  },
   "objects": [
+    {
+      "id": "wise0855",
+      "kind": "brown_dwarf",
+      "name": "WISE 0855−0714",
+      "summary": "Enana marrón extremadamente fría (unos -23 °C), el objeto más frío conocido fuera del Sistema Solar, a 7.2 años luz. Casi no emite luz visible: brilla en infrarrojo, que es justo lo que mide SPHEREx. Su movimiento propio es enorme, unos 8.1 segundos de arco por año, así que se desplaza bastante entre épocas. Las imágenes son recortes reales de SPHEREx (4.4 a 5 micras), pero el objeto es tan débil que en una sola toma no se distingue del ruido: el marcador muestra su posición calculada con su movimiento propio catalogado, y al apilar las épocas solo aparece un indicio débil, no concluyente.",
+      "positions": [
+        {
+          "epochId": "e1",
+          "observedAt": "2025-05-05",
+          "ra": 133.761262,
+          "dec": -7.242305,
+          "imageUrl": "/candidates/wise0855/e1.png",
+          "fovDeg": 0.07595
+        },
+        {
+          "epochId": "e2",
+          "observedAt": "2025-11-10",
+          "ra": 133.760087,
+          "dec": -7.242209,
+          "imageUrl": "/candidates/wise0855/e2.png",
+          "fovDeg": 0.07459
+        },
+        {
+          "epochId": "e3",
+          "observedAt": "2025-12-13",
+          "ra": 133.759883,
+          "dec": -7.242192,
+          "imageUrl": "/candidates/wise0855/e3.png",
+          "fovDeg": 0.07458
+        },
+        {
+          "epochId": "e4",
+          "observedAt": "2026-04-21",
+          "ra": 133.759079,
+          "dec": -7.242126,
+          "imageUrl": "/candidates/wise0855/e4.png",
+          "fovDeg": 0.07665
+        },
+        {
+          "epochId": "e5",
+          "observedAt": "2026-05-11",
+          "ra": 133.758955,
+          "dec": -7.242115,
+          "imageUrl": "/candidates/wise0855/e5.png",
+          "fovDeg": 0.07623
+        }
+      ]
+    },
     {
       "id": "barnard",
       "kind": "star",
@@ -56,9 +108,21 @@
       "name": "Asteroide demo A",
       "summary": "Cuerpo rocoso del Sistema Solar. Cambia de posición entre épocas porque orbita el Sol mucho más cerca que las estrellas, así que se ve como un punto que se desplaza sobre un fondo fijo. (Dato simulado para pruebas.)",
       "positions": [
-        { "epochId": "e1", "ra": 209.42, "dec": 53.95 },
-        { "epochId": "e2", "ra": 209.48, "dec": 53.92 },
-        { "epochId": "e3", "ra": 209.54, "dec": 53.89 }
+        {
+          "epochId": "e1",
+          "ra": 209.42,
+          "dec": 53.95
+        },
+        {
+          "epochId": "e2",
+          "ra": 209.48,
+          "dec": 53.92
+        },
+        {
+          "epochId": "e3",
+          "ra": 209.54,
+          "dec": 53.89
+        }
       ],
       "prediction": {
         "atDate": "2027-06-01",
@@ -74,8 +138,16 @@
       "name": "Candidato A",
       "summary": "Posible enana café: un objeto más masivo que un planeta pero sin masa suficiente para ser estrella. Es frío y brilla sobre todo en infrarrojo, donde SPHEREx puede verlo. Su desplazamiento es muy pequeño. (Dato simulado para pruebas.)",
       "positions": [
-        { "epochId": "e1", "ra": 209.3, "dec": 54.0 },
-        { "epochId": "e3", "ra": 209.32, "dec": 54.01 }
+        {
+          "epochId": "e1",
+          "ra": 209.3,
+          "dec": 54.0
+        },
+        {
+          "epochId": "e3",
+          "ra": 209.32,
+          "dec": 54.01
+        }
       ]
     },
     {
@@ -84,9 +156,21 @@
       "name": "Objeto variable",
       "summary": "Fuente que no cambia de lugar pero sí de brillo entre épocas. Sirve para distinguir un objeto que cambia de luz de uno que cambia de posición. (Dato simulado para pruebas.)",
       "positions": [
-        { "epochId": "e1", "ra": 209.55, "dec": 53.8 },
-        { "epochId": "e2", "ra": 209.55, "dec": 53.8 },
-        { "epochId": "e3", "ra": 209.55, "dec": 53.8 }
+        {
+          "epochId": "e1",
+          "ra": 209.55,
+          "dec": 53.8
+        },
+        {
+          "epochId": "e2",
+          "ra": 209.55,
+          "dec": 53.8
+        },
+        {
+          "epochId": "e3",
+          "ra": 209.55,
+          "dec": 53.8
+        }
       ]
     }
   ]
