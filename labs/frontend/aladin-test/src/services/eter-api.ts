@@ -94,6 +94,17 @@ export const eterApiService = {
     return `${API_BASE_URL}/frames/${encodeURIComponent(frameId)}/image`;
   },
 
+    /**
+   * Construye la URL del recorte PNG de un producto remoto registrado.
+   */
+  getRemotePreviewUrl(objectId: string, productId: string): string {
+    const params = new URLSearchParams({
+      product_id: productId,
+    });
+
+    return `${API_BASE_URL}/objects/${encodeURIComponent(objectId)}/remote-preview?${params.toString()}`;
+  },
+
   /**
    * Obtiene el catálogo de objetos.
    * Permite filtrar por nombre mediante el parámetro q.

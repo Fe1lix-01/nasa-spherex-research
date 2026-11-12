@@ -452,9 +452,9 @@ export default function CatalogPage() {
                     variant="body2"
                     sx={{ color: eter.textMuted, mt: 1 }}
                   >
-                       {selectedObject.observation_count === 0
-  ? "Este objeto aún no tiene observaciones FITS asociadas en el catálogo."
-  : `${selectedObject.observation_count} observaciones disponibles en los detectores ${selectedObject.detectors.join(", ")}.`}
+                       {selectedObject.observation_count} observaciones asociadas:
+{" "}{selectedObject.local_observation_count} locales y
+{" "}{selectedObject.remote_observation_count} remotas.
                   </Typography>
 
                   {selectedObject.science_preview && (
@@ -471,6 +471,85 @@ export default function CatalogPage() {
       className="mt-4 h-auto w-full rounded-lg"
     />
   </section>
+)}
+
+{selectedObject.remote_observations?.length > 0 && (
+  <Box sx={{ mt: 3 }}>
+    <Typography variant="h6" sx={{ mb: 1 }}>
+      Imágenes remotas de IRSA
+    </Typography>
+
+    <Typography
+      variant="body2"
+      sx={{ color: eter.textMuted, mb: 2 }}
+    >
+      {selectedObject.remote_association?.description}
+      {" "}Se muestran los productos importados de una consulta limitada.
+      La figura del canal 63 procede del cubo de M101 configurado por separado.
+    </Typography>
+
+    {selectedObject.remote_observations.map((observation) => (
+      <Box
+        key={observation.product_id}
+        sx={{
+          p: 2,
+          mb: 2,
+          border: `1px solid ${eter.line}`,
+          borderRadius: 2,
+          overflowWrap: "anywhere",
+        }}
+      >
+        <Typography variant="subtitle1">
+          {observation.band} · {observation.collection}
+        </Typography>
+
+        <Typography variant="body2">
+          Inicio UTC: {observation.start_utc}
+        </Typography>
+
+        <Typography variant="body2" sx={{ mt: 1 }}>
+          Producto: {observation.product_id}
+        </Typography>
+        <Box
+          component="img"
+          src={eterApiService.getRemotePreviewUrl(
+            selectedObject.id,
+            observation.product_id,
+          )}
+          alt={`Recorte de ${selectedObject.name}, ${observation.band}, ${observation.start_utc}`}
+          loading="lazy"
+          sx={{
+            display: "block",
+            width: 240,
+            maxWidth: "100%",
+            aspectRatio: "1 / 1",
+            objectFit: "contain",
+            imageRendering: "pixelated",
+            bgcolor: "#000",
+            borderRadius: 1,
+            mt: 2,
+            mb: 1,
+          }}
+        />
+
+        <Typography
+          variant="caption"
+          sx={{ display: "block", color: eter.textMuted }}
+        >
+          Recorte de 0,025° mostrado ampliado.
+        </Typography>
+        <Typography
+          component="a"
+          href={observation.access_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{ display: "inline-block", mt: 1, color: eter.accent }}
+        >
+          Abrir FITS en IRSA
+        </Typography>
+      </Box>
+    ))}
+  </Box>
 )}
 
                   <Divider sx={{ borderColor: eter.line, my: 3 }} />

@@ -52,11 +52,41 @@ export interface AstronomicalObjectSummary {
   name: string;
   observation_count: number;
   detectors: Detector[];
+  local_observation_count: number;
+  remote_observation_count: number;
+}
+
+/** Producto remoto encontrado mediante una consulta espacial a IRSA. */
+export interface RemoteObservation {
+  observation_id: string;
+  product_id: string;
+  collection: "spherex_qr2" | "spherex_qr3";
+  band: string;
+  start_mjd: number;
+  end_mjd: number;
+  start_utc: string;
+  image_center_ra_deg: number;
+  image_center_dec_deg: number;
+  access_url: string;
+  access_format: string;
 }
 
 /** Información completa de un objeto y sus observaciones. */
 export interface AstronomicalObjectDetail extends AstronomicalObjectSummary {
   observations: Observation[];
+  remote_observations: RemoteObservation[];
+  remote_association?: {
+    type: "spatial_intersection";
+    description: string;
+  } | null;
+  remote_query?: {
+    collection: "spherex_qr2" | "spherex_qr3";
+    ra: number;
+    dec: number;
+    radius_arcsec: number;
+    band: string;
+    limit: number;
+  } | null;
   science_preview?: {
     title: string;
     description: string;

@@ -1,5 +1,8 @@
 # Permite buscar patrones dentro de los nombres de archivos.
 import re
+
+from app.services import remote_catalog as remote_catalog_service
+
 # uuid5 genera identificadores deterministas:
 # con el mismo nombre y namespace obtenemos el mismo ID.
 from uuid import NAMESPACE_URL, uuid5
@@ -107,6 +110,9 @@ def list_objects(q: str | None = None) -> list[dict]:
                 "name": item["name"],
                 # Cuenta cuántos archivos tiene este objeto.
                 "observation_count": len(associated_observations),
+
+                "local_observation_count": len(associated_observations),
+                "remote_observation_count": 0,
                  # El conjunto {...} elimina detectores repetidos.
                 # sorted() los convierte en una lista ordenada.
                 #
@@ -123,7 +129,68 @@ def list_objects(q: str | None = None) -> list[dict]:
                 "observations": associated_observations,
             }
         )
-        
+
+            # Incorporar únicamente registros remotos presentes y validados.
+    snapshot = remote_catalog_service.load_m101_snapshot()
+
+    if snapshot is not None and snapshot.result.observations:
+        target_name = snapshot.target.name
+
+        # Reutilizar el objeto si ya existe entre los archivos locales.
+        target = next(
+            (
+                item
+                for item in objects
+                if item["name"].strip().casefold()
+                == target_name.casefold()
+            ),
+            None,
+        )
+
+        if target is None:
+            target = {
+                "id": make_object_id(target_name),
+                "name": target_name,
+                "observation_count": 0,
+                "local_observation_count": 0,
+                "remote_observation_count": 0,
+                "detectors": [],
+                "observations": [],
+            }
+            objects.append(target)
+
+        # El esquema del registro ya comprueba product_id duplicados.
+        target["remote_observations"] = [
+            observation.model_dump(mode="json")
+            for observation in snapshot.result.observations
+        ]
+
+        target["remote_association"] = snapshot.association.model_dump(
+            mode="json"
+        )
+        target["remote_query"] = snapshot.result.query.model_dump(
+            mode="json"
+        )
+
+        target["remote_observation_count"] = len(
+            target["remote_observations"]
+        )
+        target["observation_count"] = (
+            target["local_observation_count"]
+            + target["remote_observation_count"]
+        )
+
+        remote_detectors = {
+            observation.band.removeprefix("SPHEREx-")
+            for observation in snapshot.result.observations
+        }
+
+        target["detectors"] = sorted(
+            set(target["detectors"]) | remote_detectors
+        )
+
+    # Mantener un orden estable después de incorporar los registros remotos.
+    objects.sort(key=lambda item: item["name"].casefold())
         # Asociar la vista únicamente a un objeto encontrado en las observaciones.
     for item in objects:
         if item["name"].strip().casefold() == "m101":

@@ -2,6 +2,8 @@
 # HTTPException permite responder con errores HTTP controlados.
 from fastapi import APIRouter, HTTPException
 
+from app.services.remote_catalog import RemoteCatalogError
+
 # Modelos utilizados para validar las respuestas.
 from app.schemas.objects import (
     AstronomicalObjectDetail,
@@ -46,6 +48,16 @@ def get_objects(q: str | None = None):
         raise HTTPException(
             status_code=503,
             detail="El catálogo local de observaciones no está disponible",
+        ) from None
+    except RemoteCatalogError:
+        raise HTTPException(
+            status_code=503,
+            detail="El registro remoto de observaciones no está disponible o es inválido",
+        ) from None
+    except RemoteCatalogError:
+        raise HTTPException(
+            status_code=503,
+            detail="El registro remoto de observaciones no está disponible o es inválido",
         ) from None
     except ValueError:
          # El servicio no pudo interpretar algún nombre.

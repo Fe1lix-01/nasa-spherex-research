@@ -5,6 +5,7 @@ import pytest
 # sin iniciar Uvicorn ni abrir un navegador.
 from fastapi.testclient import TestClient
 
+from app.services import remote_catalog as remote_catalog_service
 from app.main import app
 from app.services import observations as observations_service
 from app.services.objects import list_objects
@@ -12,6 +13,14 @@ from app.services.objects import list_objects
 # Cliente HTTP de prueba conectado a nuestra aplicación.
 client = TestClient(app)
 
+@pytest.fixture(autouse=True)
+def registro_remoto_ausente(tmp_path, monkeypatch):
+    """Estas pruebas comprueban el catálogo local sin importaciones remotas."""
+    monkeypatch.setattr(
+        remote_catalog_service,
+        "M101_METADATA_PATH",
+        tmp_path / "registro_ausente.json",
+    )
 
 def make_observations(name, detectors):
     """Genera metadatos de prueba; no crea archivos científicos."""

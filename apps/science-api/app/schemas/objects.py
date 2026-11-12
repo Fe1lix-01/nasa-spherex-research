@@ -6,6 +6,9 @@ from pydantic import BaseModel, Field
 # De esta manera no se repite la definicion de sus campos.
 from app.schemas.observations import Observations
 
+from app.schemas.remote_catalog import SpatialAssociation
+from app.schemas.sia import SiaObservation, SiaQuery
+
 # Esta clase represnta el resumen de un objeto astronomico.
 # y pues es la informacion que aparece en el listado :V.
 class AstronomicalObjectSummary(BaseModel):
@@ -15,6 +18,8 @@ class AstronomicalObjectSummary(BaseModel):
     name: str
     #Cantidad de los archivos asociados.
     observation_count: int = Field(ge=0)
+    local_observation_count: int = Field(default=0, ge=0)
+    remote_observation_count: int = Field(default=0, ge=0)
     # Lista de detectores disponibles.
     # Ejemplo: ["D1", "D2", "D3"].
     detectors: list[str]
@@ -30,6 +35,9 @@ class SciencePreview(BaseModel):
 # Se usa para consultar un objeto por su ID.
 class AstronomicalObjectDetail(AstronomicalObjectSummary):
     observations: list[Observations]
+    remote_observations: list[SiaObservation] = Field(default_factory=list)
+    remote_association: SpatialAssociation | None = None
+    remote_query: SiaQuery | None = None
     science_preview: SciencePreview | None = None
 
 # Representa la respuesta del listado completo.

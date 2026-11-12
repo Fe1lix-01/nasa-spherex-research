@@ -460,3 +460,140 @@ utilizando las dependencias de la imagen construida desde requirements.txt
 y el proyecto montado en modo de solo lectura.
 
 Resultado: 83 pruebas aprobadas en 3.97 segundos.
+
+## Observaciones remotas de M101 en el catálogo
+
+El catálogo puede incorporar metadatos de imágenes individuales obtenidos
+mediante IRSA SIA, además de los archivos FITS locales.
+
+### Importación reproducible
+
+Desde la raíz del repositorio, con las dependencias del backend instaladas:
+
+```powershell
+.\.venv\Scripts\python.exe .\experiments\04_consultar_metadatos_m101.py
+```
+
+El script reutiliza el servicio SIA del backend y guarda:
+
+```text
+data/m101/observations.json
+```
+
+La carpeta data está excluida de Git. Cada integrante puede regenerar
+su registro ejecutando el script con acceso a IRSA.
+
+La consulta utiliza:
+
+- Colección spherex_qr2.
+- RA 210.8022671 grados.
+- Dec 54.34895 grados.
+- Radio de 30 segundos de arco.
+- Detector SPHEREx-D4.
+- Límite de dos productos ordenados por fecha.
+
+La posición procede del centro WCS inspeccionado del cubo oficial
+M101_irsa.fits.
+
+El archivo conserva la fecha de consulta, los parámetros, la procedencia,
+los identificadores de producto, las fechas y las URLs devueltas por IRSA.
+Es una selección limitada de resultados y requiere una nueva ejecución
+para actualizarse.
+
+### Asociación científica
+
+Las observaciones se asocian mediante intersección espacial entre su
+cobertura y el círculo consultado alrededor de M101.
+
+El cubo de M101 utilizado para la figura del canal 63 mantiene su
+procedencia separada. No se ha demostrado que los dos productos
+importados sean entradas de ese mosaico.
+
+Se utiliza obs_publisher_did como product_id. obs_id puede repetirse
+entre detectores.
+
+### Comportamiento del catálogo
+
+Un registro válido con observaciones permite incorporar M101.
+Un registro ausente o vacío no agrega el objeto.
+
+Si M101 ya existe entre las observaciones locales, el servicio incorpora
+sus metadatos remotos al mismo objeto.
+
+La respuesta distingue:
+
+- local_observation_count.
+- remote_observation_count.
+- observation_count, suma de ambos conteos.
+- observations, archivos locales.
+- remote_observations, productos remotos registrados.
+
+El conteo representa registros asociados. La identificación de posibles
+coincidencias entre un archivo local y un producto remoto requiere
+metadatos de procedencia adicionales.
+
+Un registro inválido devuelve HTTP 503 con un mensaje controlado.
+
+### Previsualizaciones remotas
+
+Endpoint:
+
+```text
+GET /api/v1/objects/{object_id}/remote-preview?product_id=...
+```
+
+product_id debe corresponder a un producto registrado en ese objeto.
+La URL del producto se obtiene del registro y se valida contra el
+archivo de imágenes de IRSA.
+
+El servicio solicita un recorte de 0,025 grados, valida la extensión
+IMAGE, su estructura bidimensional y el WCS, y comprueba que la posición
+solicitada esté dentro de la imagen.
+
+La generación de PNG reutiliza la normalización existente de frames.
+Esta previsualización individual no aplica la máscara FLAGS del mosaico.
+
+La descarga tiene:
+
+- Timeout de conexión de 10 segundos.
+- Timeout de lectura de 60 segundos.
+- Hasta dos reintentos adicionales por errores de conexión.
+- Límite de respuesta de 8 MiB.
+
+Los timeouts corresponden a operaciones de red, no a un límite total
+de duración de la solicitud.
+
+Cada previsualización requiere acceso a IRSA. Los recortes se procesan
+en memoria y el PNG se devuelve con image/png.
+
+Respuestas documentadas:
+
+- 200: PNG generado.
+- 404: objeto o producto no registrado.
+- 422: product_id ausente o vacío.
+- 502: respuesta externa o recorte inválido.
+- 503: catálogo o conexión no disponibles.
+- 504: timeout de descarga.
+
+### Verificación
+
+- 126 pruebas del backend aprobadas, ninguna omitida.
+- Pruebas independientes del registro personal mediante archivos temporales.
+- Casos de registro ausente, vacío, inválido y con productos duplicados.
+- Pruebas de descarga con servidor HTTP local controlado.
+- Pruebas de FITS sintéticos y validación WCS.
+- Previsualizaciones reales comprobadas en el catálogo para M101 y SIMP.
+- ESLint completado con cero errores y una advertencia por no-img-element.
+- Generación de tipos de Next.js y TypeScript completados correctamente.
+
+La suite local emitió una advertencia de deprecación de Starlette
+TestClient.
+
+### Verificaciones pendientes
+
+El timeout está probado en el cliente de descarga. La conversión de ese
+timeout en HTTP 504 del endpoint todavía carece de una prueba de integración.
+
+La versión actual requiere una nueva comprobación desde un checkout limpio.
+La configuración Docker anterior también necesita actualizarse y
+comprobarse para incorporar el registro remoto a esta versión.

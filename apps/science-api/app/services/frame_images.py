@@ -127,6 +127,14 @@ def _normalize_image(data: np.ndarray) -> np.ndarray:
 
     return pixels
 
+def render_image_png(data: np.ndarray) -> bytes:
+    """Convierte una imagen científica 2D en un PNG de visualización."""
+    pixels = _normalize_image(data)
+
+    output = BytesIO()
+    Image.fromarray(pixels).save(output, format="PNG")
+
+    return output.getvalue()
 
 def render_frame_png(frame_id: str) -> bytes:
     """
@@ -159,16 +167,7 @@ def render_frame_png(frame_id: str) -> bytes:
                 raise FrameImageError(
                     "El archivo FITS no contiene datos de imagen"
                 )
-
-            # Normalizamos los valores para producir píxeles de 8 bits.
-            pixels = _normalize_image(data)
-
-        # Codificamos la matriz de píxeles como PNG en memoria.
-        output = BytesIO()
-        Image.fromarray(pixels).save(output, format="PNG")
-
-        # Devolvemos los bytes que enviará la API.
-        return output.getvalue()
+            return render_image_png(data)
 
     except FrameImageError:
         # Conservamos los errores de validación generados por el servicio.
