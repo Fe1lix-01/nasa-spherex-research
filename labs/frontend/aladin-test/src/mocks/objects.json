@@ -7,6 +7,54 @@
   },
   "objects": [
     {
+      "id": "r-dra",
+      "kind": "star",
+      "name": "R Draconis",
+      "summary": "Estrella variable de tipo Mira: una gigante roja que pulsa y cambia mucho de brillo a lo largo de unos 245 días. Es tan brillante para SPHEREx que satura el detector: los píxeles negros del centro son un artefacto de saturación, no parte del objeto, y por eso el cambio de luz entre épocas no se puede medir con estas imágenes. Se muestra como ejemplo de un objeto demasiado brillante para el instrumento.",
+      "positions": [
+        {
+          "epochId": "e1",
+          "observedAt": "2025-04-24",
+          "ra": 248.167243,
+          "dec": 66.755023,
+          "imageUrl": "/candidates/r-dra/e1.png",
+          "fovDeg": 0.0733
+        },
+        {
+          "epochId": "e2",
+          "observedAt": "2025-06-12",
+          "ra": 248.167241,
+          "dec": 66.755023,
+          "imageUrl": "/candidates/r-dra/e2.png",
+          "fovDeg": 0.02008
+        },
+        {
+          "epochId": "e3",
+          "observedAt": "2025-12-26",
+          "ra": 248.167233,
+          "dec": 66.755024,
+          "imageUrl": "/candidates/r-dra/e3.png",
+          "fovDeg": 0.04429
+        },
+        {
+          "epochId": "e4",
+          "observedAt": "2026-02-20",
+          "ra": 248.167231,
+          "dec": 66.755024,
+          "imageUrl": "/candidates/r-dra/e4.png",
+          "fovDeg": 0.07663
+        },
+        {
+          "epochId": "e5",
+          "observedAt": "2026-04-17",
+          "ra": 248.167229,
+          "dec": 66.755024,
+          "imageUrl": "/candidates/r-dra/e5.png",
+          "fovDeg": 0.07003
+        }
+      ]
+    },
+    {
       "id": "rw-aur",
       "kind": "star",
       "name": "RW Aurigae",
