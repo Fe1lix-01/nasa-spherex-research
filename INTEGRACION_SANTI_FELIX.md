@@ -285,3 +285,178 @@ identificador sin agregar una entrada duplicada.
 - 17 pruebas del catálogo aprobadas.
 - 68 pruebas aprobadas en la suite completa del backend.
 - Se comprobaron M101 presente, ausente, sin duplicados y catálogo vacío.
+- ESLint del Route Handler y sus pruebas completado sin errores.
+- Generación de tipos de Next.js completada correctamente.
+- TypeScript (`tsc --noEmit`) completado sin errores.
+
+## Política de FLAGS para la visualización de M101
+
+La referencia oficial utilizada es la documentación del Mosaic Tool de IRSA:
+
+https://irsa.ipac.caltech.edu/onlinehelp/spherex/spherex/mosaic.html
+
+IRSA describe la propagación de OVERFLOW, OUTLIER y SOURCE en los
+mosaicos. El encabezado FLAGS del archivo M101_irsa.fits inspeccionado
+confirma MP_OVERFLOW=1, MP_OUTLIER=19 y MP_SOURCE=21.
+
+Para la figura exploratoria de M101 se decidió excluir los píxeles
+marcados con OVERFLOW o OUTLIER. Se conserva SOURCE para mostrar
+las fuentes astronómicas. También se exige IMAGE finita y NHITS > 0.
+
+La recomendación de IRSA sobre visualizar las máscaras problemáticas
+respalda la identificación de esas banderas. Su exclusión de la figura
+es una política de visualización del proyecto.
+
+El parámetro bad_flag_bits del README corresponde a la fotometría
+del pipeline. Para esta visualización del mosaico se utiliza el
+subconjunto (1, 19). Esta política tiene alcance específico para M101.
+Las banderas adicionales no se excluyen automáticamente y requieren
+revisión si se admite otro producto o versión.
+
+Las pruebas comprueban cada bandera seleccionada, sus combinaciones
+con SOURCE, datos no finitos y cobertura no positiva.
+
+### Verificación de la máscara
+
+Se ejecutó `tests/test_science_preview.py` con 37 pruebas aprobadas,
+ninguna omitida y una advertencia de deprecación de Starlette TestClient.
+
+Las pruebas incluyen las banderas individuales, sus combinaciones,
+datos no finitos, cobertura no positiva y flujo negativo finito.
+
+### Estado de revisión
+
+Los significados de los bits se contrastaron con la documentación
+oficial de IRSA y el encabezado FLAGS del FITS local de M101.
+
+La política implementada excluye los bits 1 y 19 para la visualización
+de este mosaico. Su justificación y alcance quedan documentados para
+revisión del equipo.
+
+La suite completa del backend pasó con 83 pruebas aprobadas y una
+advertencia de deprecación de Starlette TestClient.
+
+## Proxy científico en contenedores
+
+El Route Handler de Next.js utiliza `SCIENCE_API_URL` como dirección
+base del backend, sin incluir `/api/v1`.
+
+Para frontend y backend en la misma red de Docker Compose:
+
+```text
+SCIENCE_API_URL=http://science-api:8000
+```
+
+`science-api` es el nombre del servicio backend. La comunicación utiliza
+el puerto interno 8000. Uvicorn escucha en `0.0.0.0` dentro del contenedor.
+
+El FITS local se monta en modo de solo lectura en
+`/data/M101_irsa.fits`. El backend configura:
+
+```text
+M101_FITS_PATH=/data/M101_irsa.fits
+```
+
+### Ejecutar la prueba
+
+Desde la raíz del repositorio, con el FITS descargado en
+`data/m101/M101_irsa.fits`:
+
+```powershell
+docker compose -p m101-proxy-test -f compose.proxy-test.yaml up --build -d
+docker compose -p m101-proxy-test -f compose.proxy-test.yaml ps
+```
+
+Consultar el proxy en:
+
+http://localhost:3001/api/science/m101
+
+Detener el backend y actualizar la página:
+
+```powershell
+docker compose -p m101-proxy-test -f compose.proxy-test.yaml stop science-api
+```
+
+La respuesta esperada es HTTP 503.
+
+Reiniciar el backend:
+
+```powershell
+docker compose -p m101-proxy-test -f compose.proxy-test.yaml start science-api
+```
+
+Cuando el backend esté saludable, actualizar la página.
+La figura debe volver a cargar.
+
+Para detener y retirar los contenedores de prueba:
+
+```powershell
+docker compose -p m101-proxy-test -f compose.proxy-test.yaml down
+```
+
+### Servidores diferentes
+
+Configurar `SCIENCE_API_URL` con una dirección del backend accesible
+desde el servidor Next.js. Por ejemplo:
+
+```text
+SCIENCE_API_URL=https://api.ejemplo.org
+```
+
+La dirección es ilustrativa. Deben comprobarse DNS, conectividad,
+puertos y certificados HTTPS del despliegue real.
+
+La variable debe estar disponible al iniciar Next.js.
+`127.0.0.1` corresponde al propio entorno de red del proceso.
+
+### Errores y tiempos de espera
+
+El proxy aplica un timeout de diez segundos a la conexión y a la
+lectura completa de la respuesta.
+
+- 200: contenido no vacío de tipo image/png.
+- 502: formato inesperado o cuerpo vacío.
+- 503: configuración ausente, error de conexión o respuesta fallida
+  del backend.
+- 504: tiempo de espera agotado.
+
+### Verificación realizada
+
+- Siete pruebas automatizadas del Route Handler aprobadas.
+- Timeout real durante la lectura del cuerpo comprobado.
+- Figura recibida correctamente entre contenedores separados.
+- Error 503 comprobado con el backend detenido.
+- Recuperación comprobada después de reiniciar el backend.
+
+El despliegue en servidores físicos o remotos diferentes queda
+pendiente de verificar.
+
+## Justificación de HTTPX y HTTPX2
+
+Los clientes de IRSA y SIA importan `httpx`.
+Se conserva `httpx==0.28.1` para esas consultas.
+
+Starlette 1.10.0 utiliza `httpx2` en su módulo `starlette.testclient`.
+Las pruebas del backend utilizan ese cliente mediante FastAPI TestClient.
+Se conserva `httpx2==2.13.0` por este uso comprobado.
+
+### Verificación en Docker
+
+Versiones inspeccionadas:
+
+- FastAPI 0.162.0.
+- Starlette 1.10.0.
+- HTTPX 0.28.1.
+- HTTPX2 2.13.0.
+
+Se confirmó que el cliente seleccionado por `starlette.testclient`
+es `httpx2`.
+
+`python -m pip check` terminó con:
+`No broken requirements found.`
+
+La suite del backend se ejecutó en un contenedor temporal sin red,
+utilizando las dependencias de la imagen construida desde requirements.txt
+y el proyecto montado en modo de solo lectura.
+
+Resultado: 83 pruebas aprobadas en 3.97 segundos.

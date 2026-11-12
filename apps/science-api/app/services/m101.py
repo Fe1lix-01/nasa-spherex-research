@@ -5,6 +5,30 @@ from astropy.io import fits
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
+# Política de visualización para el mosaico de M101.
+# IRSA Mosaic Tool y encabezado FLAGS del FITS:
+# https://irsa.ipac.caltech.edu/onlinehelp/spherex/spherex/mosaic.html
+M101_OVERFLOW_BIT = 1
+M101_OUTLIER_BIT = 19
+
+
+def crear_mascara_m101(
+    imagen: np.ndarray,
+    hits: np.ndarray,
+    flags: np.ndarray,
+) -> np.ndarray:
+    """Selecciona píxeles para la visualización del mosaico de M101."""
+    bits_excluidos = (
+        (1 << M101_OVERFLOW_BIT)
+        | (1 << M101_OUTLIER_BIT)
+    )
+
+    return (
+        np.isfinite(imagen)
+        & (hits > 0)
+        & ((flags & bits_excluidos) == 0)
+    )
+
 
 def generar_figura_m101(
     archivo: Path,
@@ -132,16 +156,7 @@ def generar_figura_m101(
         hits = cubo_hits[indice].copy()
         flags = cubo_flags[indice].copy()
 
-    # Conservamos las banderas utilizadas en el script de Santi.
-    overflow = (flags & (1 << 1)) != 0
-    outlier = (flags & (1 << 19)) != 0
-
-    validos = (
-        np.isfinite(imagen)
-        & (hits > 0)
-        & ~overflow
-        & ~outlier
-    )
+        validos = crear_mascara_m101(imagen, hits, flags)
 
     if not np.any(validos):
         raise ValueError("No hay píxeles válidos para visualizar este canal.")

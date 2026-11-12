@@ -1,0 +1,40 @@
+services:
+  science-api:
+    build:
+      context: ./apps/science-api
+      dockerfile: Dockerfile.proxy-test
+    environment:
+      M101_FITS_PATH: /data/M101_irsa.fits
+      MPLBACKEND: Agg
+    volumes:
+      - type: bind
+        source: ./data/m101/M101_irsa.fits
+        target: /data/M101_irsa.fits
+        read_only: true
+        bind:
+          create_host_path: false
+    ports:
+      - "127.0.0.1:8001:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=5)"
+      interval: 5s
+      timeout: 6s
+      retries: 12
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./labs/frontend/aladin-test
+      dockerfile: Dockerfile.proxy-test
+    environment:
+      SCIENCE_API_URL: http://science-api:8000
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      science-api:
+        condition: service_healthy

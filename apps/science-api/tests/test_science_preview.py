@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.main import app
-from app.services.m101 import generar_figura_m101
+from app.services.m101 import crear_mascara_m101, generar_figura_m101
 
 
 ENDPOINT = "/api/v1/science/m101/channel-63/preview"
@@ -234,3 +234,61 @@ def test_m101_endpoint_documentado():
 
     assert "image/png" in operacion["responses"]["200"]["content"]
     assert "503" in operacion["responses"]
+
+@pytest.mark.parametrize(
+    ("flag", "esperado"),
+    [
+        (0, True),
+        (1 << 1, False),
+        (1 << 19, False),
+        (1 << 21, True),
+        ((1 << 1) | (1 << 19), False),
+        ((1 << 1) | (1 << 21), False),
+        ((1 << 19) | (1 << 21), False),
+        ((1 << 1) | (1 << 19) | (1 << 21), False),
+        # Documenta que esta política aplica únicamente el subconjunto elegido.
+        (1 << 0, True),
+    ],
+)
+def test_mascara_m101_flags(flag, esperado):
+    imagen = np.array([[1.0]])
+    hits = np.array([[1]])
+    flags = np.array([[flag]], dtype=np.int32)
+
+    resultado = crear_mascara_m101(imagen, hits, flags)
+
+    assert resultado.dtype == np.bool_
+    assert resultado.shape == imagen.shape
+    assert bool(resultado[0, 0]) is esperado
+
+
+@pytest.mark.parametrize("valor", [np.nan, np.inf, -np.inf])
+def test_mascara_m101_excluye_imagen_no_finita(valor):
+    imagen = np.array([[valor]])
+    hits = np.array([[1]])
+    flags = np.array([[0]], dtype=np.int32)
+
+    resultado = crear_mascara_m101(imagen, hits, flags)
+
+    assert not resultado[0, 0]
+
+
+@pytest.mark.parametrize("cobertura", [0, -1])
+def test_mascara_m101_exige_cobertura_positiva(cobertura):
+    imagen = np.array([[1.0]])
+    hits = np.array([[cobertura]])
+    flags = np.array([[0]], dtype=np.int32)
+
+    resultado = crear_mascara_m101(imagen, hits, flags)
+
+    assert not resultado[0, 0]
+
+
+def test_mascara_m101_conserva_flujo_negativo_finito():
+    imagen = np.array([[-0.5]])
+    hits = np.array([[1]])
+    flags = np.array([[0]], dtype=np.int32)
+
+    resultado = crear_mascara_m101(imagen, hits, flags)
+
+    assert resultado[0, 0]

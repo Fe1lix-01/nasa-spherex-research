@@ -17,7 +17,8 @@ astropy>=7.2.0
 # Framework para ejecutar las pruebas automatizadas.
 pytest==9.1.1
 
-# Dependencia que ya estaba en tu archivo original.
+# Cliente utilizado por Starlette TestClient en las pruebas del backend.
+# Verificado con Starlette 1.10.0.
 httpx2==2.13.0
 
 # Operaciones numéricas sobre matrices de píxeles.
