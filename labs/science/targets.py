@@ -95,8 +95,10 @@ TARGETS: dict[str, Target] = {
         kind="star",
         summary=(
             "Estrella variable de tipo Mira: una gigante roja que pulsa y cambia mucho de brillo a "
-            "lo largo de unos 245 días. Como RW Aurigae, aquí lo que se observa entre épocas es el "
-            "cambio de luz, no de posición."
+            "lo largo de unos 245 días. Es tan brillante para SPHEREx que satura el detector: los "
+            "píxeles negros del centro son un artefacto de saturación, no parte del objeto, y por "
+            "eso el cambio de luz entre épocas no se puede medir con estas imágenes. Se muestra "
+            "como ejemplo de un objeto demasiado brillante para el instrumento."
         ),
         # Sin respaldo: la posición se resuelve por nombre. Su movimiento propio es pequeño, así
         # que si no se consigue, el script avanza con movimiento cero y lo avisa.
