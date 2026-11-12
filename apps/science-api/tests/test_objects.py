@@ -8,9 +8,32 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.services import observations as observations_service
 from app.services.objects import list_objects
+# Servicio del catálogo remoto que utiliza el catálogo unificado.
+from app.services import remote_catalog as remote_catalog_service
 
 # Cliente HTTP de prueba conectado a nuestra aplicación.
 client = TestClient(app)
+
+@pytest.fixture(autouse=True)
+def disable_remote_catalog(monkeypatch):
+    """
+    Aísla las pruebas de este módulo del catálogo remoto real.
+
+    Estas pruebas verifican principalmente el comportamiento del
+    catálogo local. Por eso simulamos que no existe un snapshot
+    remoto, evitando depender de data/m101/observations.json.
+
+    Las pruebas específicas del catálogo remoto se mantienen
+    en test_remote_catalog.py.
+    """
+
+    # Evita que M101 se incorpore desde el archivo real durante
+    # las pruebas que pertenecen a este módulo.
+    monkeypatch.setattr(
+        remote_catalog_service,
+        "load_m101_snapshot",
+        lambda: None,
+    )
 
 
 def make_observations(name, detectors):
