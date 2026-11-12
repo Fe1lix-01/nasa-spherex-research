@@ -43,7 +43,7 @@ def sample_catalog(monkeypatch):
 
 
 def test_list_groups_six_observations(sample_catalog):
-    response = client.get("/api/v1/objects", params={"q": "SIMP"})
+    response = client.get("/api/v1/objects")
 
     assert response.status_code == 200
 
@@ -131,11 +131,11 @@ def test_counts_objects_separately_from_observations(
     data = response.json()
 
     assert response.status_code == 200
-    assert data["total"] == 3
+    assert data["total"] == 2
     assert sorted(
         item["observation_count"]
         for item in data["objects"]
-    ) == [0, 2, 6]
+    ) == [2, 6]
 
 
 def test_ids_are_stable_when_order_changes(
@@ -187,13 +187,10 @@ def test_empty_catalog(monkeypatch):
     response = client.get("/api/v1/objects")
 
     assert response.status_code == 200
-
-    data = response.json()
-
-    assert data["total"] == 1
-    assert len(data["objects"]) == 1
-    assert data["objects"][0]["name"] == "M101"
-    assert data["objects"][0]["observation_count"] == 0
+    assert response.json() == {
+        "total": 0,
+        "objects": [],
+    }
 
 
 def test_objects_appear_in_openapi():
@@ -228,3 +225,88 @@ def test_local_catalog_integration():
         item["observation_count"]
         for item in data["objects"]
     ) == len(observations)
+
+
+def test_m101_absent_from_catalog(sample_catalog):
+    response = client.get(
+        "/api/v1/objects",
+        params={"q": "M101"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "total": 0,
+        "objects": [],
+    }
+
+    listed = client.get("/api/v1/objects").json()
+    object_id = listed["objects"][0]["id"]
+
+    detail = client.get(f"/api/v1/objects/{object_id}")
+
+    assert detail.status_code == 200
+    assert detail.json().get("science_preview") is None
+
+
+@pytest.mark.parametrize("name", ["M101", "m101"])
+def test_existing_m101_gets_preview_without_duplicates(
+    monkeypatch,
+    sample_catalog,
+    name,
+):
+    m101_observations = make_observations(
+        name,
+        ["D1", "D2"],
+    )
+    observations = sample_catalog + m101_observations
+
+    monkeypatch.setattr(
+        observations_service,
+        "list_observations",
+        lambda: observations,
+    )
+
+    response = client.get("/api/v1/objects")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    # SIMP y M101 son los dos objetos presentes en las observaciones.
+    assert data["total"] == 2
+    assert len(data["objects"]) == 2
+
+    matches = [
+        item
+        for item in data["objects"]
+        if item["name"].casefold() == "m101"
+    ]
+
+    assert len(matches) == 1
+
+    m101 = matches[0]
+
+    assert m101["observation_count"] == 2
+    assert m101["detectors"] == ["D1", "D2"]
+
+    detail = client.get(f"/api/v1/objects/{m101['id']}")
+
+    assert detail.status_code == 200
+
+    object_data = detail.json()
+
+    assert object_data["observations"] == m101_observations
+    assert object_data["science_preview"] == {
+        "title": "M101 — Canal 63",
+        "description": "Imagen del canal, cobertura y máscara de calidad.",
+    }
+
+    # La búsqueda conserva el mismo objeto y su identificador.
+    search = client.get(
+        "/api/v1/objects",
+        params={"q": "m101"},
+    )
+
+    assert search.status_code == 200
+    assert search.json()["total"] == 1
+    assert search.json()["objects"][0]["id"] == m101["id"]

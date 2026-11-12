@@ -124,19 +124,13 @@ def list_objects(q: str | None = None) -> list[dict]:
             }
         )
         
-    objects.append(
-            {
-                "id": make_object_id("M101"),
-                "name": "M101",
-                "observation_count": 0,
-                "detectors": [],
-                "observations": [],
-                "science_preview": {
-                    "title": "M101 — Canal 63",
-                    "description": "Imagen del canal, cobertura y máscara de calidad.",
-            },
-        }
-    )
+        # Asociar la vista únicamente a un objeto encontrado en las observaciones.
+    for item in objects:
+        if item["name"].strip().casefold() == "m101":
+            item["science_preview"] = {
+                "title": "M101 — Canal 63",
+                "description": "Imagen del canal, cobertura y máscara de calidad.",
+            }
 
 # ESTA ES LA PARTE QUE APLICA EL FILTRO POR NOMBRE.
     if q is not None:
