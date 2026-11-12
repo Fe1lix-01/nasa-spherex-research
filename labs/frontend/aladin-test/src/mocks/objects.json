@@ -7,6 +7,54 @@
   },
   "objects": [
     {
+      "id": "rw-aur",
+      "kind": "star",
+      "name": "RW Aurigae",
+      "summary": "Estrella joven y variable del tipo T Tauri, todavía rodeada por un disco de material. No cambia de posición de forma apreciable: lo que cambia es su brillo, a veces de forma brusca cuando el disco la oscurece. Sirve para distinguir un objeto que cambia de luz de uno que cambia de lugar.",
+      "positions": [
+        {
+          "epochId": "e1",
+          "observedAt": "2025-09-08",
+          "ra": 76.956586,
+          "dec": 30.401293,
+          "imageUrl": "/candidates/rw-aur/e1.png",
+          "fovDeg": 0.07987
+        },
+        {
+          "epochId": "e2",
+          "observedAt": "2026-03-01",
+          "ra": 76.956587,
+          "dec": 30.40129,
+          "imageUrl": "/candidates/rw-aur/e2.png",
+          "fovDeg": 0.07988
+        },
+        {
+          "epochId": "e3",
+          "observedAt": "2026-03-09",
+          "ra": 76.956587,
+          "dec": 30.40129,
+          "imageUrl": "/candidates/rw-aur/e3.png",
+          "fovDeg": 0.07991
+        },
+        {
+          "epochId": "e4",
+          "observedAt": "2026-09-10",
+          "ra": 76.956588,
+          "dec": 30.401287,
+          "imageUrl": "/candidates/rw-aur/e4.png",
+          "fovDeg": 0.07992
+        },
+        {
+          "epochId": "e5",
+          "observedAt": "2026-09-15",
+          "ra": 76.956588,
+          "dec": 30.401287,
+          "imageUrl": "/candidates/rw-aur/e5.png",
+          "fovDeg": 0.07989
+        }
+      ]
+    },
+    {
       "id": "wise0855",
       "kind": "brown_dwarf",
       "name": "WISE 0855−0714",
