@@ -29,13 +29,27 @@ import ModeToggle, { type ViewMode } from "./components/panel/ModeToggle";
 import SkyStage from "./components/sky/SkyStage";
 import { skyCssFilter } from "./components/sky/skyFilters";
 import { useEpochClock } from "./hooks/useEpochClock";
-import { positionAt, trackPoints } from "@/features/preview/model/trajectory";
+import {
+  epochsForObject,
+  hasOwnImages,
+  positionAt,
+  trackPoints,
+} from "@/features/preview/model/trajectory";
 
 /** A dónde mira el mosaico. `nonce` cambia en cada búsqueda para volver a ir aunque sea al mismo punto. */
 type SkyTarget = { raDeg: number; decDeg: number; fovDeg: number; nonce: number };
 const ALL_SKY: SkyTarget = { raDeg: 0, decDeg: 0, fovDeg: 360, nonce: 0 };
 const CLOSE_UP_FOV_DEG = 1.5; // campo al ir a un candidato o a unas coordenadas
 const TEST_LABEL = "Prueba"; // nombre de la zona con imágenes simuladas
+
+/** Campo de visión del recuadro de un candidato real, si su dato no lo trae. */
+const REAL_PATCH_FOV_DEG = 0.08;
+/**
+ * Qué tanto se acerca el mosaico al elegir un candidato con imágenes reales. Los recortes de
+ * SPHEREx son pequeños (unos minutos de arco), así que hay que acercarse mucho para que el
+ * recuadro ocupe buena parte de la pantalla.
+ */
+const REAL_CLOSE_UP_FOV_DEG = 0.14;
 
 /**
  * Opacidad de la capa de la época i en el instante t. La primera siempre está debajo y
@@ -45,9 +59,10 @@ const layerOpacity = (i: number, t: number) => (i === 0 ? 1 : Math.min(Math.max(
 
 /**
  * Vista previa de movimiento dentro del visor de ÉTER. Tiene dos modos:
- *  - Mosaico del cielo: el mapa interactivo de Aladin (AllWISE como referencia). Las imágenes
- *    simuladas ("Prueba") se pintan encima, en la zona del cielo donde están los objetos de
- *    prueba, con los mismos filtros, marcador, rastro y animación.
+ *  - Mosaico del cielo: el mapa interactivo de Aladin (AllWISE como referencia). Encima se
+ *    pinta el recuadro del candidato elegido: si es un candidato con datos REALES (sus
+ *    propias imágenes por época, bajadas de IRSA), se usan esas; si es uno de los objetos
+ *    simulados, se usan las imágenes de prueba compartidas.
  *  - Épocas simuladas: las imágenes de prueba solas, a pantalla completa.
  */
 export default function PreviewPanel() {
@@ -66,9 +81,9 @@ export default function PreviewPanel() {
   const [menuSection, setMenuSection] = useState<number | null>(0);
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [revision, setRevision] = useState(0);
-  const [mode, setMode] = useState<ViewMode>("sky")
+  const [mode, setMode] = useState<ViewMode>("sky");
   const [skyTarget, setSkyTarget] = useState<SkyTarget>(ALL_SKY);
-  const [skyOpened, setSkyOpened] = useState(true); //// el mapa se crea la primera vez que se entra
+  const [skyOpened, setSkyOpened] = useState(true); // el mapa se crea la primera vez que se entra
   const [skyFailed, setSkyFailed] = useState(false); // si falla, se usa el visor básico de Felix
 
   useEffect(() => {
@@ -81,10 +96,21 @@ export default function PreviewPanel() {
       .catch(() => setLoadError("No se pudieron cargar los datos de la vista previa."));
   }, []);
 
-  const clock = useEpochClock(frames?.length ?? 0, 3);
   const frame = frames?.[0] ?? null;
   const filter = FILTERS[filterIndex];
   const skyMode = mode === "sky";
+
+  // ¿El candidato elegido trae sus propias imágenes por época? Entonces son datos reales y
+  // manda su propia línea de tiempo (por ejemplo, Barnard con 5 épocas de IRSA).
+  const realObject = selected && hasOwnImages(selected) ? selected : null;
+  const track = selected ? trackPoints(selected) : [];
+
+  // Cuántas épocas tiene la animación en curso: las del candidato real, o las compartidas.
+  const epochCount = realObject ? realObject.positions.length : frames?.length ?? 0;
+  const clock = useEpochClock(epochCount, 3);
+
+  // Las fechas que muestran la barra de reproducción y el recuadro de información.
+  const shownEpochs = epochsForObject(realObject, epochs);
 
   const changeMode = (next: ViewMode) => {
     if (next === "sky") setSkyOpened(true);
@@ -109,13 +135,15 @@ export default function PreviewPanel() {
   };
 
   const pickCandidate = (obj: MovingObject) => {
-    if (!frame) return;
-    const first = trackPoints(obj, epochs)[0];
+    const first = trackPoints(obj)[0];
     if (!first) return;
-    setOutside(skyToImage(first.ra, first.dec, frame) === null);
+    const real = hasOwnImages(obj);
+    setOutside(!real && frame ? skyToImage(first.ra, first.dec, frame) === null : false);
     setMarker(null); // el marcador del candidato lo dibuja la animación
-    goSky(first.ra, first.dec, CLOSE_UP_FOV_DEG);
+    // Los recortes reales son pequeños (unos minutos de arco), así que hay que acercarse más.
+    goSky(first.ra, first.dec, real ? REAL_CLOSE_UP_FOV_DEG : CLOSE_UP_FOV_DEG);
     setSelected(obj);
+    if (real) setMode("sky"); // las imágenes reales solo se ven sobre el mosaico
     clock.seek(0);
   };
 
@@ -127,11 +155,10 @@ export default function PreviewPanel() {
   // Marcadores: el de las coordenadas buscadas (fijo) y el del candidato (se mueve con t).
   const markers: Marker[] = [];
   if (marker) markers.push(marker);
-  const moving = selected ? positionAt(selected, epochs, clock.t) : null;
+  const moving = selected ? positionAt(selected, clock.t) : null;
   if (selected && moving) {
     markers.push({ id: `${selected.id}-now`, label: selected.name ?? selected.id, ...moving });
   }
-  const trail = selected ? trackPoints(selected, epochs) : [];
 
   // "Reiniciar visor": vuelve al zoom inicial, detiene la animación y limpia marcador y recuadro.
   const resetViewer = () => {
@@ -144,8 +171,8 @@ export default function PreviewPanel() {
     goSky(ALL_SKY.raDeg, ALL_SKY.decDeg, ALL_SKY.fovDeg);
   };
 
-  // Las imágenes de prueba: se usan a pantalla completa o dentro del mosaico, según el modo.
-  const epochLayers = frames?.map((f, i) => (
+  // Capas de las imágenes de prueba compartidas (las 3 simuladas).
+  const demoLayers = frames?.map((f, i) => (
     <EpochLayer
       key={f.epochId}
       imageUrl={f.imageUrl}
@@ -157,6 +184,37 @@ export default function PreviewPanel() {
     />
   ));
 
+  // Capas del recuadro sobre el mosaico: las del candidato real, si las tiene; si no, las de prueba.
+  const patchLayers = realObject
+    ? track.map((p, i) => (
+        <EpochLayer
+          key={`${realObject.id}-${p.index}`}
+          imageUrl={p.imageUrl as string}
+          filter={filter}
+          inten={inten}
+          gain={gain}
+          opacity={layerOpacity(i, clock.t)}
+          onError={setSceneError}
+        />
+      ))
+    : demoLayers;
+
+  // Dónde y de qué tamaño va el recuadro en el cielo.
+  const patch =
+    realObject && track[0]
+      ? {
+          ra: track[0].ra,
+          dec: track[0].dec,
+          fovDeg: track[0].fovDeg ?? REAL_PATCH_FOV_DEG,
+          label: realObject.name ?? realObject.id,
+        }
+      : {
+          ra: frame?.ra ?? 209.4201,
+          dec: frame?.dec ?? 53.9431,
+          fovDeg: frame?.fovDeg ?? 3.5,
+          label: TEST_LABEL,
+        };
+
   return (
     <ViewerShell
       background={
@@ -166,15 +224,10 @@ export default function PreviewPanel() {
               active={skyMode}
               target={skyTarget}
               cssFilter={skyCssFilter(filter.id, inten, gain)}
-              patch={{
-                ra: frame?.ra ?? 209.4201,
-                dec: frame?.dec ?? 53.9431,
-                fovDeg: frame?.fovDeg ?? 3.5,
-                label: TEST_LABEL,
-              }}
-              patchContent={skyMode ? epochLayers : null}
+              patch={patch}
+              patchContent={skyMode ? patchLayers : null}
               markers={markers}
-              trail={trail}
+              trail={track}
               t={clock.t}
               onFail={onSkyFail}
             />
@@ -190,10 +243,14 @@ export default function PreviewPanel() {
             />
           )}
           {!skyMode && (
+            // A pantalla completa solo viven las imágenes simuladas: el rastro y el marcador
+            // de un candidato real se dibujarían fuera de lugar, así que ahí no se pintan.
             <PanZoom key={revision}>
-              {epochLayers}
-              {frame && selected && <TrailLayer frame={frame} points={trail} t={clock.t} />}
-              {frame && <MarkerLayer frame={frame} markers={markers} />}
+              {demoLayers}
+              {frame && selected && !realObject && (
+                <TrailLayer frame={frame} points={track} t={clock.t} />
+              )}
+              {frame && <MarkerLayer frame={frame} markers={realObject ? [] : markers} />}
             </PanZoom>
           )}
         </>
@@ -207,9 +264,9 @@ export default function PreviewPanel() {
             </Typography>
           )}
           <ModeToggle value={mode} onChange={changeMode} />
-          {frames && frames.length > 1 && epochs.length > 1 && (
+          {epochCount > 1 && shownEpochs.length > 1 && (
             <PlaybackBar
-              epochs={epochs}
+              epochs={shownEpochs}
               t={clock.t}
               playing={clock.playing}
               speed={clock.speed}
@@ -242,7 +299,11 @@ export default function PreviewPanel() {
         </Box>
       }
       filterLabel={`${filter.name} · ${filter.band}`}
-      sourceLabel="Vista previa · Imágenes simuladas (3 épocas)"
+      sourceLabel={
+        realObject
+          ? `Vista previa · SPHEREx / IRSA · ${realObject.positions.length} épocas reales`
+          : "Vista previa · Imágenes simuladas (3 épocas)"
+      }
       tagline={<PreviewCredit />}
       menuOpen={menuOpen}
       onOpenMenu={() => {
@@ -253,7 +314,7 @@ export default function PreviewPanel() {
         <>
           <SvgDefs />
           <TopRightTools
-          onPickRegion={(ra, dec, fovDeg) => {
+            onPickRegion={(ra, dec, fovDeg) => {
               setSelected(null);
               setMarker(null);
               setOutside(false);
@@ -275,7 +336,7 @@ export default function PreviewPanel() {
             disabled={!frame}
           />
           {selected && (
-            <PreviewCard object={selected} epochs={epochs} onClose={() => setSelected(null)} />
+            <PreviewCard object={selected} epochs={shownEpochs} onClose={() => setSelected(null)} />
           )}
           <MenuDrawer
             open={menuOpen}

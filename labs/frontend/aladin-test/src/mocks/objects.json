@@ -3,6 +3,54 @@
   "region": { "ra": 209.4201, "dec": 53.9431, "fovDeg": 3.333 },
   "objects": [
     {
+      "id": "barnard",
+      "kind": "star",
+      "name": "Estrella de Barnard",
+      "summary": "Enana roja a unos 6 años luz, la estrella con el movimiento propio más rápido del cielo: se desplaza unos 10.3 segundos de arco por año. Las cinco imágenes son recortes reales de SPHEREx obtenidos de IRSA entre agosto de 2025 y septiembre de 2026, y la posición de cada época se calcula con su movimiento propio catalogado (ICRS J2000).",
+      "positions": [
+        {
+          "epochId": "e1",
+          "observedAt": "2025-08-21",
+          "ra": 269.44635,
+          "dec": 4.76716,
+          "imageUrl": "/candidates/barnard/e1.png",
+          "fovDeg": 0.08
+        },
+        {
+          "epochId": "e2",
+          "observedAt": "2026-03-15",
+          "ra": 269.44622,
+          "dec": 4.76878,
+          "imageUrl": "/candidates/barnard/e2.png",
+          "fovDeg": 0.08
+        },
+        {
+          "epochId": "e3",
+          "observedAt": "2026-08-18",
+          "ra": 269.44613,
+          "dec": 4.77001,
+          "imageUrl": "/candidates/barnard/e3.png",
+          "fovDeg": 0.08
+        },
+        {
+          "epochId": "e4",
+          "observedAt": "2026-08-28",
+          "ra": 269.44612,
+          "dec": 4.77009,
+          "imageUrl": "/candidates/barnard/e4.png",
+          "fovDeg": 0.08
+        },
+        {
+          "epochId": "e5",
+          "observedAt": "2026-09-22",
+          "ra": 269.44611,
+          "dec": 4.77029,
+          "imageUrl": "/candidates/barnard/e5.png",
+          "fovDeg": 0.08
+        }
+      ]
+    },
+    {
       "id": "obj-m101-01",
       "kind": "asteroid",
       "name": "Asteroide demo A",
