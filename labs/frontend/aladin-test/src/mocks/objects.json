@@ -7,6 +7,54 @@
   },
   "objects": [
     {
+      "id": "m42",
+      "kind": "nebula",
+      "name": "Nebulosa de Orión (M42)",
+      "summary": "Nebulosa de Orión, una región de formación estelar a unos 1,300 años luz, la más cercana donde nacen estrellas masivas. Las estrellas jóvenes del centro (el Trapecio) calientan el gas y el polvo, que brillan en infrarrojo. No se desplaza: las cinco imágenes son recortes reales de SPHEREx (IRSA) en la banda de 2.4 a 3.8 micras y se ven casi iguales porque la nebulosa no cambia de posición entre épocas. El centro es tan brillante que se ve como una mancha blanca.",
+      "positions": [
+        {
+          "epochId": "e1",
+          "observedAt": "2025-09-06",
+          "ra": 83.820112,
+          "dec": -5.387602,
+          "imageUrl": "/candidates/m42/e1.png",
+          "fovDeg": 0.5
+        },
+        {
+          "epochId": "e2",
+          "observedAt": "2026-03-09",
+          "ra": 83.820112,
+          "dec": -5.387602,
+          "imageUrl": "/candidates/m42/e2.png",
+          "fovDeg": 0.5
+        },
+        {
+          "epochId": "e3",
+          "observedAt": "2026-03-18",
+          "ra": 83.820112,
+          "dec": -5.387602,
+          "imageUrl": "/candidates/m42/e3.png",
+          "fovDeg": 0.5
+        },
+        {
+          "epochId": "e4",
+          "observedAt": "2026-09-06",
+          "ra": 83.820112,
+          "dec": -5.387602,
+          "imageUrl": "/candidates/m42/e4.png",
+          "fovDeg": 0.5
+        },
+        {
+          "epochId": "e5",
+          "observedAt": "2026-10-01",
+          "ra": 83.820112,
+          "dec": -5.387602,
+          "imageUrl": "/candidates/m42/e5.png",
+          "fovDeg": 0.5
+        }
+      ]
+    },
+    {
       "id": "r-dra",
       "kind": "star",
       "name": "R Draconis",
