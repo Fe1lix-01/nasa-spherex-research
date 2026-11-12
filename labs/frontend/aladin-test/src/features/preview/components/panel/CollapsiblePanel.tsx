@@ -27,7 +27,8 @@ export default function CollapsiblePanel({ open, onToggle, children }: Props) {
           border: `1px solid ${eter.lineStrong}`,
           backgroundColor: eter.glass,
           backdropFilter: "blur(8px)",
-          "&:hover": { backgroundColor: "rgba(255,255,255,0.1)" },
+          "&:hover": { borderColor: eter.lineHover, backgroundColor: eter.hoverFill },
+          "&:focus-visible": { outline: `2px solid ${eter.focusRing}`, outlineOffset: 2 },       
         }}
       >
         {open ? <KeyboardArrowDown /> : <KeyboardArrowUp />}
