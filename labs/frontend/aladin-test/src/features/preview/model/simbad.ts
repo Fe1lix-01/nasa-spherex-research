@@ -15,6 +15,8 @@ export const MAX_FOV_FOR_LAYER = 6;
 const FIELD_LIMIT = 150;
 
 export type SimbadObject = {
+  /** Número interno de SIMBAD: sin ambigüedad, a diferencia del nombre (que puede traer apóstrofes o espacios dobles). */
+  oid: number;
   /** Identificador principal de SIMBAD, p. ej. "V* R Dra". */
   id: string;
   /** Código de tipo de SIMBAD, p. ej. "Mi*". */
@@ -46,8 +48,6 @@ export type SimbadDetails = {
 const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
 const str = (v: unknown): string | undefined => (typeof v === "string" && v.trim() !== "" ? v.trim() : undefined);
 
-/** Las comillas simples se duplican: así un nombre no puede romper la consulta ADQL. */
-const quote = (s: string) => `'${s.replace(/'/g, "''")}'`;
 
 /**
  * Ejecuta una consulta ADQL y devuelve filas como objetos { columna: valor }.
@@ -112,8 +112,8 @@ export async function findObjectsInField(
   radiusDeg: number,
   signal?: AbortSignal,
 ): Promise<SimbadObject[]> {
-  const adql =
-    `SELECT TOP ${FIELD_LIMIT} main_id, otype, ra, dec, nbref FROM basic ` +
+    const adql =
+    `SELECT TOP ${FIELD_LIMIT} main_id, oid, otype, ra, dec, nbref FROM basic ` +
     `WHERE CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', ${raDeg}, ${decDeg}, ${radiusDeg}))=1 ` +
     `AND ra IS NOT NULL AND dec IS NOT NULL ORDER BY nbref DESC`;
 
@@ -121,24 +121,25 @@ export async function findObjectsInField(
   const objects: SimbadObject[] = [];
   for (const r of rows) {
     const id = str(r.main_id);
+    const oid = num(r.oid);
     const ra = num(r.ra);
     const dec = num(r.dec);
-    if (id && ra !== undefined && dec !== undefined) {
-      objects.push({ id, otype: str(r.otype) ?? "?", ra, dec, nbref: num(r.nbref) ?? 0 });
+    if (id && oid !== undefined && ra !== undefined && dec !== undefined) {
+      objects.push({ oid, id, otype: str(r.otype) ?? "?", ra, dec, nbref: num(r.nbref) ?? 0 });
     }
   }
   return objects;
 }
 
 /** Ficha completa de un objeto, para la tarjeta que se abre al hacer clic. */
-export async function getObjectDetails(mainId: string, signal?: AbortSignal): Promise<SimbadDetails | null> {
+export async function getObjectDetails(oid: number, signal?: AbortSignal): Promise<SimbadDetails | null> {
   const adql =
     `SELECT basic.main_id, basic.otype, basic.ra, basic.dec, basic.sp_type, basic.plx_value, ` +
     `basic.pmra, basic.pmdec, basic.rvz_radvel, basic.nbref, otypedef.otype_longname, ` +
     `allfluxes.B, allfluxes.V, allfluxes.G, allfluxes.J, allfluxes.H, allfluxes.K ` +
     `FROM basic LEFT JOIN otypedef ON basic.otype = otypedef.otype ` +
     `LEFT JOIN allfluxes ON basic.oid = allfluxes.oidref ` +
-    `WHERE basic.main_id = ${quote(mainId)}`;
+    `WHERE basic.oid = ${Math.trunc(oid)}`;
 
   const [r] = await runAdql(adql, signal);
   if (!r) return null;
@@ -155,7 +156,7 @@ export async function getObjectDetails(mainId: string, signal?: AbortSignal): Pr
   }
 
   return {
-    id: str(r.main_id) ?? mainId,
+    id: str(r.main_id) ?? String(oid),
     otype,
     typeLabel: TYPE_ES[otype] ?? str(r.otype_longname) ?? otype,
     ra,
