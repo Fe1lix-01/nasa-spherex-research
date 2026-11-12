@@ -2,7 +2,7 @@
 
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
-import { eter } from "@/theme/theme";
+import { eter, selectedRing } from "@/theme/theme";
 import type { ControlOption } from "../types";
 
 type Props = {
@@ -32,13 +32,14 @@ export default function FilterChips({ options, current, onSelect }: Props) {
       {options.map((f, i) => {
         const on = i === current;
         return (
-          <Chip
+                    <Chip
             key={f.id}
             label={f.name}
             clickable
             aria-pressed={on}
             onClick={() => onSelect(i)}
-            variant={on ? "filled" : "outlined"}
+            // Siempre "outlined": el seleccionado ya no se rellena, solo cambia el borde.
+            variant="outlined"
             sx={{
               flexShrink: 0,
               height: 44,
@@ -47,11 +48,12 @@ export default function FilterChips({ options, current, onSelect }: Props) {
               "& .MuiChip-label": { px: 2.5 },
               ...(on
                 ? {
-                    backgroundColor: eter.accent,
-                    borderColor: eter.accent,
-                    color: eter.onAccent,
-                    fontWeight: 500,
-                    "&:hover": { backgroundColor: eter.accent },
+                    // El borde propio se oculta y lo reemplaza el aro de luz (-1px = cubre el borde).
+                    ...selectedRing("-1px", "inherit"),
+                    borderColor: "transparent",
+                    backgroundColor: "transparent",
+                    color: "#fff",
+                    "&:hover": { backgroundColor: eter.hoverFill, borderColor: "transparent" },
                   }
                 : {
                     borderColor: eter.lineStrong,

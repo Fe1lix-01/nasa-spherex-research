@@ -3,7 +3,7 @@
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { eter } from "@/theme/theme";
+import { eter, selectedRing } from "@/theme/theme";
 
 type Option<T> = { value: T; label: string };
 
@@ -58,8 +58,14 @@ export default function SegmentedControl<T extends string | number>({
             color: eter.textMuted,
             borderColor: eter.lineStrong,
             "&:hover": { backgroundColor: eter.hoverFill },
-            "&.Mui-selected": { color: eter.accent, backgroundColor: eter.accentGlow },
-            "&.Mui-selected:hover": { backgroundColor: eter.accentGlowStrong },
+                        // Seleccionado: sin relleno ámbar; el aro de luz queda como "píldora" interior
+            // para no pelear con las esquinas cuadradas que MUI da a los botones pegados.
+            "&.Mui-selected": {
+              ...selectedRing("3px", "9px"),
+              color: "#fff",
+              backgroundColor: "transparent",
+            },
+            "&.Mui-selected:hover": { backgroundColor: eter.hoverFill },
             // Foco hacia adentro: si fuera hacia afuera, el botón vecino lo taparía.
             "&:focus-visible": { outline: `2px solid ${eter.focusRing}`, outlineOffset: -2 },
           }}
