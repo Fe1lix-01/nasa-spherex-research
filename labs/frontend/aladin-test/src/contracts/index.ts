@@ -24,6 +24,14 @@ export type SkyPosition = {
   epochId: string; // en qué época se midió
   ra: number; // ascensión recta, en grados
   dec: number; // declinación, en grados
+  /**
+   * Los tres campos siguientes solo los traen los candidatos con datos REALES (los que se
+   * bajaron de IRSA con su propio recorte por época). Los objetos simulados no los traen y
+   * comparten las imágenes del recuadro de prueba.
+   */
+  observedAt?: string; // fecha real de esta observación (ISO 8601)
+  imageUrl?: string; // imagen de esta época, p. ej. "/candidates/barnard/e1.png"
+  fovDeg?: number; // ancho real del recorte, en grados
 };
 
 /** Tipos de objeto. Los valores van en inglés; la interfaz los traduce al español. */

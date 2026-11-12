@@ -2,24 +2,35 @@ import type { Epoch, MovingObject } from "@/contracts";
 
 export type SkyPoint = { ra: number; dec: number };
 
-/** Puntos medidos del objeto, ordenados por época, con el índice de la época (0, 1, 2…). */
-export function trackPoints(obj: MovingObject, epochs: Epoch[]): (SkyPoint & { index: number })[] {
-  const index = new Map(epochs.map((e, i) => [e.id, i]));
-  const pts: (SkyPoint & { index: number })[] = [];
-  for (const p of obj.positions) {
-    const i = index.get(p.epochId);
-    if (i !== undefined) pts.push({ index: i, ra: p.ra, dec: p.dec });
-  }
-  return pts.sort((a, b) => a.index - b.index);
+/** Un punto de la trayectoria, en el orden cronológico en que viene guardado. */
+export type TrackPoint = SkyPoint & {
+  index: number;
+  imageUrl?: string;
+  fovDeg?: number;
+  observedAt?: string;
+};
+
+/**
+ * Puntos medidos del objeto, en el orden en que vienen en `positions` (ya es el orden
+ * cronológico: así los guarda cada fuente de datos, simulada o real).
+ */
+export function trackPoints(obj: MovingObject): TrackPoint[] {
+  return obj.positions.map((p, index) => ({
+    index,
+    ra: p.ra,
+    dec: p.dec,
+    imageUrl: p.imageUrl,
+    fovDeg: p.fovDeg,
+    observedAt: p.observedAt,
+  }));
 }
 
 /**
- * Posición del objeto en el instante t (0 = primera época, 1 = segunda…).
- * Entre dos detecciones interpola en línea recta; si en alguna época no se detectó,
- * simplemente "salta" esa y une las que sí tiene. Fuera del rango se queda en el extremo.
+ * Posición del objeto en el instante t (0 = primera posición, 1 = segunda…).
+ * Entre dos puntos interpola en línea recta; fuera del rango se queda en el extremo.
  */
-export function positionAt(obj: MovingObject, epochs: Epoch[], t: number): SkyPoint | null {
-  const pts = trackPoints(obj, epochs);
+export function positionAt(obj: MovingObject, t: number): SkyPoint | null {
+  const pts = trackPoints(obj);
   if (pts.length === 0) return null;
   const first = pts[0];
   const end = pts[pts.length - 1];
@@ -39,6 +50,15 @@ export function positionAt(obj: MovingObject, epochs: Epoch[], t: number): SkyPo
   return { ra: end.ra, dec: end.dec };
 }
 
+/**
+ * true cuando el objeto trae su propia imagen en CADA posición: es un candidato con datos
+ * reales (como Barnard), no uno de los 3 objetos simulados que comparten las imágenes del
+ * recuadro "Prueba".
+ */
+export function hasOwnImages(obj: MovingObject): boolean {
+  return obj.positions.length > 0 && obj.positions.every((p) => !!p.imageUrl);
+}
+
 /** Fecha (YYYY-MM-DD) en el instante t, interpolando entre las fechas de las épocas. */
 export function dateAt(epochs: Epoch[], t: number): string {
   if (epochs.length === 0) return "";
@@ -48,4 +68,21 @@ export function dateAt(epochs: Epoch[], t: number): string {
   const b = new Date(epochs[j].observedAt).getTime();
   const f = Math.min(Math.max(t - i, 0), 1);
   return new Date(a + (b - a) * f).toISOString().slice(0, 10);
+}
+
+/**
+ * Lista de "épocas" a mostrar para este objeto: si trae sus propias fechas (datos reales),
+ * una por cada una de sus posiciones; si no, las épocas compartidas (objetos simulados).
+ */
+export function epochsForObject(obj: MovingObject | null, sharedEpochs: Epoch[]): Epoch[] {
+  if (!obj) return sharedEpochs;
+  const pts = trackPoints(obj);
+  if (pts.length > 0 && pts.every((p) => p.observedAt)) {
+    return pts.map((p, i) => ({
+      id: `e${i + 1}`,
+      observedAt: p.observedAt as string,
+      label: `Época ${i + 1}`,
+    }));
+  }
+  return sharedEpochs;
 }
