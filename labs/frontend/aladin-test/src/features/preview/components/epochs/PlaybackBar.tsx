@@ -10,6 +10,7 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import type { Epoch } from "@/contracts";
 import { eter, glassPanel, selectedRing } from "@/theme/theme";
 import { dateAt } from "@/features/preview/model/trajectory";
+import { glowSliderParts } from "@/theme/sliderStyles";
 
 type Props = {
   epochs: Epoch[];
@@ -26,6 +27,7 @@ const SPEEDS = [0.5, 1, 2].map((s) => ({ value: s, label: `${s}×` }));
 /** Barra de reproducción: play/pausa, línea de tiempo con las épocas, fecha y velocidad. */
 export default function PlaybackBar({ epochs, t, playing, speed, onToggle, onSeek, onSpeed }: Props) {
   const last = Math.max(epochs.length - 1, 0);
+  const p = last > 0 ? t / last : 0; // avance de 0 a 1, para la intensidad del brillo
 
   return (
     <Box
@@ -69,11 +71,12 @@ export default function PlaybackBar({ epochs, t, playing, speed, onToggle, onSee
           value={t}
           onChange={(_, value) => onSeek(value as number)}
           marks={epochs.map((e, i) => ({ value: i, label: e.label }))}
-          sx={{
+                    sx={{
             // Sin transición: el valor cambia en cada fotograma y, con la transición de MUI,
             // la bolita se queda rezagada respecto a la fecha y al marcador.
             "& .MuiSlider-thumb, & .MuiSlider-track": { transition: "none" },
-            "& .MuiSlider-rail": { bgcolor: eter.rail, opacity: 1 },
+            // Mismo estilo que los sliders del panel; el aro gira mientras se reproduce.
+            ...glowSliderParts(p, playing),
             "& .MuiSlider-markLabel": { color: eter.textFaint, fontSize: 11 },
             "& .MuiSlider-mark": { bgcolor: eter.lineHover },
           }}

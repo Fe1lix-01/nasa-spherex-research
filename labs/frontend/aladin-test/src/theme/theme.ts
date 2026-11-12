@@ -51,7 +51,7 @@ export const glassPanel = {
  * (AnimatedButton), pero quieto. Un arco blanco que se desvanece a gris sobre un borde de 1 px.
  * `inset` y `radius` ajustan dónde se dibuja el aro según el componente que lo use.
  */
-const RING_ANGLE = 315; // grados donde empieza el destello (315° = esquina superior izquierda)
+export const RING_ANGLE = 315; // grados donde empieza el destello (315° = esquina superior izquierda)
 const RING_BASE = "rgba(255,255,255,0.35)"; // el borde completo, visible en todo el contorno
 const RING_LIGHT = "#ffffff"; // el destello
 
@@ -114,7 +114,7 @@ const theme = createTheme({
                 // Permite animar el ángulo del aro de luz (ver ringSpin).
         "@property --ring-angle": {
           syntax: '"<angle>"',
-          inherits: false,
+          inherits: true, // el slider mueve el ángulo en su raíz y la perilla lo hereda
           initialValue: `${RING_ANGLE}deg`,
         },
         html: { height: "100%" },
