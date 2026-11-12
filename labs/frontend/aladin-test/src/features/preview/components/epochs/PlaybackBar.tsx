@@ -8,7 +8,7 @@ import Typography from "@mui/material/Typography";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import type { Epoch } from "@/contracts";
-import { eter } from "@/theme/theme";
+import { eter, glassPanel, selectedRing } from "@/theme/theme";
 import { dateAt } from "@/features/preview/model/trajectory";
 
 type Props = {
@@ -36,12 +36,10 @@ export default function PlaybackBar({ epochs, t, playing, speed, onToggle, onSee
         px: 2,
         pt: 1,
         pb: 0.5,
-        color: "#fff",
-        bgcolor: eter.panelGlass,
-        border: `1px solid ${eter.lineStrong}`,
+        color: "#fff",         
+        ...glassPanel,
         borderRadius: 3,
         maxWidth: { lg: 680 }, // para que no quede debajo del recuadro del candidato
-        backdropFilter: "blur(10px)",
       }}
     >
       <IconButton
@@ -50,9 +48,12 @@ export default function PlaybackBar({ epochs, t, playing, speed, onToggle, onSee
         sx={{
           width: 40,
           height: 40,
-          color: eter.onAccent,
-          bgcolor: eter.accent,
-          "&:hover": { bgcolor: eter.accent, filter: "brightness(1.1)" },
+          // Mismo tratamiento que los seleccionados: sin relleno, aro de luz completo.
+                    // El aro gira mientras se reproduce y se queda quieto en pausa.
+          ...selectedRing("0px", "50%", playing),
+          color: "#fff", // mismo color que el destello del borde
+          bgcolor: "transparent",
+          "&:hover": { bgcolor: eter.hoverFill },
         }}
       >
         {playing ? <PauseRoundedIcon /> : <PlayArrowRoundedIcon />}
@@ -79,7 +80,7 @@ export default function PlaybackBar({ epochs, t, playing, speed, onToggle, onSee
         />
       </Box>
 
-      <Typography sx={{ fontFamily: "monospace", fontSize: 13, minWidth: 84, textAlign: "right", color: eter.accent }}>
+            <Typography sx={{ fontFamily: "monospace", fontSize: 13, minWidth: 84, textAlign: "right", color: "#fff" }}>
         {dateAt(epochs, t)}
       </Typography>
 
