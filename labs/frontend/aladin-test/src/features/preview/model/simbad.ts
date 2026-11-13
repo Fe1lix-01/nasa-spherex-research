@@ -11,8 +11,14 @@ const TIMEOUT_MS = 12000;
 
 /** Con un campo más ancho que esto no se consulta: el cielo se llenaría de marcas. */
 export const MAX_FOV_FOR_LAYER = 6;
-/** Tope de objetos por consulta (los más estudiados primero). */
+
+/** Máximo de objetos que se dibujan (los más citados). */
 const FIELD_LIMIT = 150;
+/**
+ * Cuántos se piden a SIMBAD. Se piden sin ordenar y se ordenan aquí: con `ORDER BY nbref` el servidor
+ * tardaba ~16 s en una consulta que sin ordenar tarda ~0.1 s.
+ */
+const FETCH_LIMIT = 500;
 
 export type SimbadObject = {
   /** Número interno de SIMBAD: sin ambigüedad, a diferencia del nombre (que puede traer apóstrofes o espacios dobles). */
@@ -69,7 +75,7 @@ async function runAdql(adql: string, signal?: AbortSignal): Promise<Record<strin
       const json = (await res.json()) as { metadata: { name: string }[]; data: unknown[][] };
       const names = json.metadata.map((m) => m.name);
       return json.data.map((row) => Object.fromEntries(row.map((value, i) => [names[i], value])));
-    } catch (error) {
+        } catch (error) {
       if (signal?.aborted) throw error; // la cancelación es voluntaria: no es un fallo del servidor
       lastError = error;
     } finally {
@@ -103,6 +109,19 @@ const TYPE_ES: Record<string, string> = {
   AGN: "Núcleo galáctico activo",
 };
 
+/**
+ * Umbrales de citas, del más permisivo al más estricto. Pedir "500 cualesquiera" a SIMBAD devuelve una
+ * muestra amontonada en un rincón del campo (medido: RA 274–277 de un campo de 270–277); filtrar por
+ * citas reparte los objetos por todo el campo y evita el ORDER BY, que tardaba ~16 s.
+ */
+const NBREF_STEPS = [0, 5, 20, 100, 500];
+
+/** Por dónde empezar según el radio: en campos anchos un umbral bajo se llenaría casi seguro. */
+function firstStep(radiusDeg: number) {
+  if (radiusDeg > 2) return 2; // nbref >= 20
+  if (radiusDeg > 0.7) return 1; // nbref >= 5
+  return 0; // sin filtro
+}
 /* ------------------------------ consultas ------------------------------ */
 
 /** Objetos conocidos dentro de un círculo del cielo, los más citados primero. */
@@ -112,12 +131,19 @@ export async function findObjectsInField(
   radiusDeg: number,
   signal?: AbortSignal,
 ): Promise<SimbadObject[]> {
-    const adql =
-    `SELECT TOP ${FIELD_LIMIT} main_id, oid, otype, ra, dec, nbref FROM basic ` +
-    `WHERE CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', ${raDeg}, ${decDeg}, ${radiusDeg}))=1 ` +
-    `AND ra IS NOT NULL AND dec IS NOT NULL ORDER BY nbref DESC`;
+  const cone = `CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', ${raDeg}, ${decDeg}, ${radiusDeg}))=1`;
 
-  const rows = await runAdql(adql, signal);
+  // Si la respuesta llena el tope, es solo una parte del campo: se repite con un umbral más estricto.
+  let rows: Record<string, unknown>[] = [];
+  for (let step = firstStep(radiusDeg); step < NBREF_STEPS.length; step++) {
+    const min = NBREF_STEPS[step];
+    const adql =
+      `SELECT TOP ${FETCH_LIMIT} main_id, oid, otype, ra, dec, nbref FROM basic ` +
+      `WHERE ${cone}${min > 0 ? ` AND nbref >= ${min}` : ""}`;
+    rows = await runAdql(adql, signal);
+    if (rows.length < FETCH_LIMIT) break;
+  }
+
   const objects: SimbadObject[] = [];
   for (const r of rows) {
     const id = str(r.main_id);
@@ -128,7 +154,8 @@ export async function findObjectsInField(
       objects.push({ oid, id, otype: str(r.otype) ?? "?", ra, dec, nbref: num(r.nbref) ?? 0 });
     }
   }
-  return objects;
+  objects.sort((a, b) => b.nbref - a.nbref);
+  return objects.slice(0, FIELD_LIMIT);
 }
 
 /** Ficha completa de un objeto, para la tarjeta que se abre al hacer clic. */
