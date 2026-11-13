@@ -3,6 +3,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Box from "@mui/material/Box";
 import { ALADIN_SCRIPT_URL, ALLWISE_HIPS_URL } from "@/features/sky-viewer/aladinDocument";
+import { useSimbadLayer, type SimbadAladinApi, type SimbadAladinView } from "./useSimbadLayer";
+import SimbadHint from "./SimbadHint";
+import SimbadSelectedRing from "./SimbadSelectedRing";
+import SimbadCard from "./SimbadCard";
+import SimbadStatus from "./SimbadStatus";
 
 /* ------------------------------------------------------------------ */
 /* Aladin Lite, cargado desde la misma URL que usa el visor de Felix  */
@@ -125,6 +130,8 @@ export default function SkyStage({
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<AladinView | null>(null);
   const [ready, setReady] = useState(false);
+  // Aladin, su API y el contenedor, en estado: el hook de SIMBAD necesita enterarse cuando ya existen.
+  const [aladin, setAladin] = useState<{ A: AladinApi; view: AladinView; host: HTMLElement } | null>(null);
   const [scene, setScene] = useState<Scene>({ patch: null, markers: [], trail: [] });
 
   // Últimos valores, para que el ciclo de dibujo no se reinicie en cada render.
@@ -135,6 +142,15 @@ export default function SkyStage({
     failRef.current = onFail;
   });
   const firstTarget = useRef(target);
+
+    // Capa SIMBAD: marcas de objetos conocidos, aviso al pasar el cursor y objeto elegido con clic.
+  const simbadView = aladin ? (aladin.view as unknown as SimbadAladinView) : null;
+  const simbad = useSimbadLayer({
+    A: aladin ? (aladin.A as unknown as SimbadAladinApi) : null,
+    view: simbadView,
+    host: aladin ? aladin.host : null,
+    enabled: active, // solo se consulta mientras el mosaico está visible
+  });
 
   // Crear el mapa (una sola vez).
   useEffect(() => {
@@ -187,6 +203,7 @@ export default function SkyStage({
           /* no pasa nada si no existe */
         }
         viewRef.current = view;
+        setAladin({ A, view, host });
         setReady(true);
       } catch (error) {
         if (!cancelled) failRef.current(error instanceof Error ? error.message : String(error));
@@ -390,6 +407,20 @@ export default function SkyStage({
               </Box>
             </Box>
           ))}
+
+          {/* Aro del objeto elegido: sigue al objeto cuando se mueve el mapa. */}
+          <SimbadSelectedRing view={simbadView} object={simbad.selected} /> 
+
+          {/* Tarjeta de SIMBAD del objeto elegido (key: cada objeto nuevo empieza de cero). */}
+          {simbad.selected && (
+            <SimbadCard key={simbad.selected.oid} object={simbad.selected} onClose={simbad.clearSelected} />
+          )}
+
+          {/* Estado de la capa SIMBAD: "Acércate…" si el campo es muy ancho, o error de consulta. */}
+          <SimbadStatus status={simbad.status} />
+
+          {/* Aviso de SIMBAD: una sola vez, fuera de los marcadores, para que use las coordenadas del visor. */}
+          {simbad.hovered && <SimbadHint x={simbad.pointer.x} y={simbad.pointer.y} />}
         </Box>
       </Box>
     </Box>
