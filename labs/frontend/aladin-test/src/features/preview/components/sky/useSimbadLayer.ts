@@ -12,7 +12,15 @@ import { useEffect, useRef, useState } from "react";
 import { findObjectsInField, MAX_FOV_FOR_LAYER, type SimbadObject } from "../../model/simbad";
 
 /* Tipos mínimos de lo que usamos de Aladin: así no hay que ampliar los de SkyStage. */
-type AladinCatalog = { addSources(sources: unknown[]): void; removeAll(): void; show(): void; hide(): void };
+type AladinCatalog = {
+  addSources(sources: unknown[]): void;
+  removeAll(): void;
+  show(): void;
+  hide(): void;
+  setSelectionColor?(color: string): void;
+  deselectAll?(): void;
+};
+
 export type SimbadAladinApi = {
   catalog(options: Record<string, unknown>): AladinCatalog;
   source(ra: number, dec: number, data: unknown): unknown;
@@ -21,13 +29,13 @@ export type SimbadAladinView = {
   addCatalog(catalog: AladinCatalog): void;
   getRaDec(): [number, number];
   getFov(): [number, number];
+  world2pix(ra: number, dec: number): number[] | null | undefined;
+  selectObjects?(objects: unknown[] | null): void;
   on(event: string, callback: (...args: unknown[]) => void): void;
 };
 
 export type SimbadLayerStatus = "off" | "wide" | "loading" | "ready" | "error";
 
-/** Mientras estemos probando, imprime en consola lo que manda Aladin en cada evento. */
-const DEBUG = true;
 /** Espera tras mover o hacer zoom antes de consultar, para no pedir nada a mitad de un arrastre. */
 const DEBOUNCE_MS = 400;
 
@@ -74,15 +82,25 @@ export function useSimbadLayer({ A, view, host, enabled }: Args) {
     let active = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let controller: AbortController | undefined;
-    let last: { ra: number; dec: number; radius: number } | null = null;
+    let last: { ra: number; dec: number; radius: number; viewRadius: number } | null = null;
 
-    const catalog = A.catalog({ name: "SIMBAD", sourceSize: 14, shape: "circle", color: "rgba(255,255,255,0.9)", hoverColor: "#ffd24c" });
+    const catalog = A.catalog({
+      name: "SIMBAD",
+      sourceSize: 14,
+      shape: "circle",
+      color: "rgba(255,255,255,0.9)",
+      hoverColor: "#ffd24c",
+      selectionColor: "#ffffff",
+    });
     view.addCatalog(catalog);
+    // Aladin pinta en verde la marca elegida; el aro animado ya la distingue, así que se queda blanca.
+    catalog.setSelectionColor?.("#ffffff");
     catalogRef.current = catalog;
 
-    const query = async () => {
+        const query = async () => {
       if (!active) return;
       if (!enabledRef.current) {
+        setHovered(null);
         catalog.removeAll();
         last = null;
         setStatus("off");
@@ -91,31 +109,35 @@ export function useSimbadLayer({ A, view, host, enabled }: Args) {
       const [ra, dec] = view.getRaDec();
       const fov = Math.max(...view.getFov());
       if (fov > MAX_FOV_FOR_LAYER) {
+        setHovered(null);
         catalog.removeAll();
         last = null;
         setStatus("wide");
         return;
       }
       const radius = fov / 2;
-      // Si la vista nueva cabe dentro de lo ya consultado, no se vuelve a pedir nada.
-      if (last && separationDeg(ra, dec, last.ra, last.dec) + radius <= last.radius) {
+      // Lo ya consultado sirve si la vista cabe dentro de ese círculo Y no nos acercamos más del doble:
+      // en campos muy poblados la consulta anterior es solo una muestra, y al acercarse hay que pedir de nuevo.
+      if (last && separationDeg(ra, dec, last.ra, last.dec) + radius <= last.radius && radius * 2 >= last.viewRadius) {
         setStatus("ready");
         return;
       }
       controller?.abort(); // una consulta más nueva cancela la anterior
-      controller = new AbortController();
+      const mine = new AbortController(); // propio de esta consulta: así una cancelada no se confunde con un error
+      controller = mine;
       setStatus("loading");
       try {
         // Se pide un poco más que lo visible para que mover un poco el cielo no obligue a repetir.
         const fetchRadius = radius * 1.4;
-        const objects = await findObjectsInField(ra, dec, fetchRadius, controller.signal);
-        if (!active) return;
+        const objects = await findObjectsInField(ra, dec, fetchRadius, mine.signal);
+        if (!active || mine.signal.aborted) return;
+        setHovered(null);
         catalog.removeAll();
         catalog.addSources(objects.map((o) => A.source(o.ra, o.dec, o)));
-        last = { ra, dec, radius: fetchRadius };
+        last = { ra, dec, radius: fetchRadius, viewRadius: radius };
         setStatus("ready");
       } catch {
-        if (active && !controller?.signal.aborted) setStatus("error");
+        if (active && !mine.signal.aborted) setStatus("error");
       }
     };
 
@@ -128,15 +150,37 @@ export function useSimbadLayer({ A, view, host, enabled }: Args) {
     view.on("positionChanged", schedule);
     view.on("zoomChanged", schedule);
 
+    // Red de seguridad: si Aladin no emite el evento al hacer zoom con la rueda (o durante su animación),
+    // este reloj detecta el cambio de campo o de posición y programa la consulta de todos modos.
+    let seen = { ra: Infinity, dec: Infinity, fov: Infinity };
+    const watch = setInterval(() => {
+      if (!active) return;
+      try {
+        const [ra, dec] = view.getRaDec();
+        const fov = Math.max(...view.getFov());
+        if (Math.abs(ra - seen.ra) > 1e-6 || Math.abs(dec - seen.dec) > 1e-6 || Math.abs(fov - seen.fov) > 1e-6) {
+          seen = { ra, dec, fov };
+          schedule();
+        }
+      } catch {
+        /* el mapa aún no está listo: se reintenta en el siguiente intervalo */
+      }
+    }, 250);
+
     view.on("objectHovered", (source) => {
-      if (DEBUG) console.log("[SIMBAD] objectHovered", source);
       setHovered(asSimbadObject(source));
     });
     view.on("objectHoveredStop", () => setHovered(null));
-    view.on("objectClicked", (source) => {
-      if (DEBUG) console.log("[SIMBAD] objectClicked", source);
+        view.on("objectClicked", (source) => {
       // Clic en el cielo vacío: llega null y se cierra la tarjeta.
       setSelected(asSimbadObject(source));
+      // Aladin dibuja su propio resaltado en la marca elegida y ese resaltado se queda fijo en la pantalla
+      // al mover el mapa. El aro (SimbadSelectedRing) ya marca el objeto, así que se quita el de Aladin.
+      // Se hace en el siguiente ciclo porque Aladin aplica la selección después de avisarnos del clic.
+      setTimeout(() => {
+        catalog.deselectAll?.();
+        view.selectObjects?.(null);
+      }, 0);
     });
 
     schedule();
@@ -144,6 +188,7 @@ export function useSimbadLayer({ A, view, host, enabled }: Args) {
     return () => {
       active = false;
       clearTimeout(timer);
+      clearInterval(watch);
       controller?.abort();
       catalog.removeAll();
       catalog.hide();
