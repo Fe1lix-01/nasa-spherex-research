@@ -17,6 +17,13 @@ from app.schemas.sia import SiaQuery
 
 IRSA_SIA_URL = "https://irsa.ipac.caltech.edu/SIA"
 
+SIA_TIMEOUT = httpx.Timeout(
+    connect=10.0,
+    read=60.0,
+    write=10.0,
+    pool=10.0,
+)
+
 
 
 def parse_sia_response(content: bytes) -> Table:
@@ -66,15 +73,8 @@ class SiaClient:
             "COLLECTION": query.collection,
         }
 
-        timeout = httpx.Timeout(
-            connect=10.0,
-            read=60.0,
-            write=10.0,
-            pool=10.0,
-        )
-
         with httpx.Client(
-            timeout=timeout,
+            timeout=SIA_TIMEOUT,
             follow_redirects=True,
         ) as client:
             for attempt in range(MAX_ATTEMPTS):

@@ -8,6 +8,13 @@ from app.main import app
 from app.services import observations as observations_service
 from app.services import remote_catalog as remote_catalog_service
 
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from threading import Event, Thread
+
+import httpx
+
+from app.clients import irsa_cutouts
+
 
 @pytest.fixture
 def entorno(tmp_path, monkeypatch):
@@ -240,3 +247,87 @@ def test_preview_registro_invalido_devuelve_503(entorno):
         "El catálogo de observaciones no está disponible"
     )
     assert str(path) not in response.text
+
+def test_preview_timeout_devuelve_504(
+    entorno,
+    registro,
+    monkeypatch,
+):
+    _, metadata_path = entorno
+    requests_received = []
+
+    class SlowHandler(BaseHTTPRequestHandler):
+        def log_message(self, format, *args):
+            pass
+
+        def do_GET(self):
+            requests_received.append(self.path)
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/fits")
+            self.send_header("Content-Length", "100")
+            self.end_headers()
+            self.wfile.flush()
+
+            # El cliente debe agotar su espera de lectura.
+            Event().wait(0.5)
+            self.close_connection = True
+
+    server = ThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        SlowHandler,
+    )
+    server.daemon_threads = True
+
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    host, port = server.server_address
+    origin = f"http://{host}:{port}"
+
+    try:
+        # Configuración exclusiva de esta prueba.
+        monkeypatch.setattr(
+            irsa_cutouts,
+            "IRSA_CUTOUT_ORIGIN",
+            origin,
+        )
+        monkeypatch.setattr(
+            irsa_cutouts,
+            "CUTOUT_TIMEOUT",
+            httpx.Timeout(
+                connect=2.0,
+                read=0.1,
+                write=2.0,
+                pool=2.0,
+            ),
+        )
+
+        observation = registro["result"]["observations"][0]
+        observation["access_url"] = (
+            f"{origin}/ibe/data/spherex/test.fits"
+        )
+
+        guardar(metadata_path, registro)
+
+        object_id = make_object_id("M101")
+
+        with TestClient(app) as client:
+            response = client.get(
+                f"/api/v1/objects/{object_id}/remote-preview",
+                params={
+                    "product_id": observation["product_id"],
+                },
+            )
+
+        assert response.status_code == 504
+        assert response.json()["detail"] == (
+            "Se agotó el tiempo de espera al descargar el recorte"
+        )
+        assert len(requests_received) == 1
+        assert str(metadata_path) not in response.text
+
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()

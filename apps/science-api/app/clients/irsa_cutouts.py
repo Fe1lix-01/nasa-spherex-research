@@ -12,6 +12,15 @@ from app.clients.irsa import (
 
 MAX_CUTOUT_BYTES = 8 * 1024 * 1024
 
+IRSA_CUTOUT_ORIGIN = "https://irsa.ipac.caltech.edu"
+
+CUTOUT_TIMEOUT = httpx.Timeout(
+    connect=10.0,
+    read=60.0,
+    write=10.0,
+    pool=10.0,
+)
+
 
 def _fetch_cutout(
     url: str,
@@ -61,10 +70,11 @@ def _fetch_cutout(
 def download_irsa_cutout(url: str, ra: float, dec: float) -> bytes:
     """Valida el producto registrado y solicita su recorte a IRSA."""
     parsed = urlsplit(url)
+    allowed_origin = urlsplit(IRSA_CUTOUT_ORIGIN)
 
     if (
-        parsed.scheme != "https"
-        or parsed.netloc != "irsa.ipac.caltech.edu"
+        parsed.scheme != allowed_origin.scheme
+        or parsed.netloc != allowed_origin.netloc
         or not parsed.path.startswith("/ibe/data/spherex/")
         or not parsed.path.endswith(".fits")
         or parsed.query
@@ -80,11 +90,6 @@ def download_irsa_cutout(url: str, ra: float, dec: float) -> bytes:
             "center": f"{ra},{dec}d",
             "size": str(CUTOUT_SIZE_DEG),
         },
-        timeout=httpx.Timeout(
-            connect=10.0,
-            read=60.0,
-            write=10.0,
-            pool=10.0,
-        ),
+        timeout=CUTOUT_TIMEOUT,
         max_bytes=MAX_CUTOUT_BYTES,
     )

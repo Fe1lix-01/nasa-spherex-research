@@ -5,9 +5,9 @@ La rama temporal parte de `dev_kevin` en 44574ed. Se revisaron las referencias r
 ## Archivos y alcance
 
 - Santi: `app/services/m101.py` genera la figura del canal 63 desde el FITS configurado mediante `M101_FITS_PATH`. El endpoint `GET /api/v1/science/m101/channel-63/preview` devuelve la imagen, cobertura y máscara. La práctica `labs/science/02_visualizar_canal.py` reutiliza el servicio para guardar una copia en `outputs`.
-- Félix: `labs/science/06_barnard_consultar_irsa.py` y `06b_barnard_sia.py` exploran búsquedas de Barnard. El endpoint existente `GET /api/v1/irsa/observations` cubre la consulta TAP por posición y detector. El endpoint GET /api/v1/sia/observations ya tuvo una comprobación
-manual satisfactoria con QR3. Su integración tiene pruebas y
-documentación pendientes..
+- Félix: `labs/science/06_barnard_consultar_irsa.py` y `06b_barnard_sia.py` exploran búsquedas de Barnard. El endpoint existente `GET /api/v1/irsa/observations` cubre la consulta TAP por posición y detector. El endpoint GET /api/v1/sia/observations admite QR2 y QR3.
+Sus 23 pruebas cubren transformación, VOTable, parámetros,
+errores HTTP, reintentos y timeout.
 - El espectro y mapa de PAH de Félix necesitan el cubo FITS M101. Sus scripts son exploratorios. El mapa no representa variación temporal y no debe utilizarse como detección calibrada de PAH.
 - El script anterior `zogy_script.py` necesita `P_D` y `D` y no es importable de forma independiente. Requiere definir entradas científicas y validación antes de conectarlo.
 - El visor de movimiento espera imágenes por época, geometría espacial y contratos que el backend aún no suministra. La página `/science` muestra únicamente la figura exploratoria M101. No usa el mapeo de coordenadas del visor de movimiento.
@@ -577,7 +577,7 @@ Respuestas documentadas:
 
 ### Verificación
 
-- 126 pruebas del backend aprobadas, ninguna omitida.
+- 144 pruebas del backend aprobadas, ninguna omitida.
 - Pruebas independientes del registro personal mediante archivos temporales.
 - Casos de registro ausente, vacío, inválido y con productos duplicados.
 - Pruebas de descarga con servidor HTTP local controlado.
@@ -589,11 +589,28 @@ Respuestas documentadas:
 La suite local emitió una advertencia de deprecación de Starlette
 TestClient.
 
-### Verificaciones pendientes
+### Verificaciones de integración
 
-El timeout está probado en el cliente de descarga. La conversión de ese
-timeout en HTTP 504 del endpoint todavía carece de una prueba de integración.
+Se comprobó el HTTP 504 del endpoint de recortes mediante una solicitud
+a un servidor HTTP local que retrasa el cuerpo de la respuesta.
+La prueba recorre el registro, el servicio de descarga y el router.
 
-La versión actual requiere una nueva comprobación desde un checkout limpio.
-La configuración Docker anterior también necesita actualizarse y
-comprobarse para incorporar el registro remoto a esta versión.
+Se actualizó Docker Compose para montar el cubo de M101, el registro
+remoto y los FITS locales de SIMP. Se verificaron la selección de
+objetos, sus detalles, las seis imágenes de SIMP, la figura de M101
+y sus dos recortes remotos desde el catálogo.
+
+La versión actual requiere una comprobación desde un checkout limpio.
+El despliegue entre servidores remotos sigue pendiente de verificar.
+
+### Verificación de SIA
+
+Se ejecutó `tests/test_sia.py` con 23 pruebas aprobadas y una
+advertencia de deprecación de Starlette TestClient.
+
+Se comprobaron QR2 y QR3, lectura de VOTable, resultados vacíos,
+filtro, orden, límite, validación de parámetros, respuestas externas
+fallidas y timeout con HTTP 504.
+
+Las pruebas HTTP utilizan un servidor local controlado.
+Las consultas reales a IRSA se verificaron por separado.
