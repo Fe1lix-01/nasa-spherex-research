@@ -1,0 +1,79 @@
+{
+  "mode": "SIMULACION_NO_SPHEREX",
+  "wcs_implementation": "astropy_TAN",
+  "position_epoch_1": {
+    "mjd": 60970.0,
+    "ra_deg": 269.4463,
+    "dec_deg": 4.7682,
+    "pixel_x": 63.5,
+    "pixel_y": 63.49999999999797
+  },
+  "position_epoch_2": {
+    "mjd": 61335.25,
+    "ra_deg": 269.4460762247136,
+    "dec_deg": 4.771078472222222,
+    "pixel_x": 63.62948381221901,
+    "pixel_y": 65.17137099017668
+  },
+  "expected_shift_dx_dy_px": [
+    0.12948381221900718,
+    1.6713709901787155
+  ],
+  "expected_motion_arcsec": 10.393550832454181,
+  "recovered_shift_dx_dy_px": [
+    0.08551426617073,
+    1.6686256690756447
+  ],
+  "recovered_shift_error_px": 0.044055167320650734,
+  "peak_ideal_snr": 21.77619690022617,
+  "morley": {
+    "best_hypothesis": "H2",
+    "classification": "movimiento",
+    "delta_bic_to_second": 5.081042382668215,
+    "models": {
+      "H0": {
+        "bic": 1826.6534910851121,
+        "chi2": 1826.6534910851121,
+        "shift_dx_dy_px": null,
+        "amplitudes": []
+      },
+      "H1": {
+        "bic": 1662.1604762253312,
+        "chi2": 1655.7227245755948,
+        "shift_dx_dy_px": null,
+        "amplitudes": [
+          -71.89942085210627
+        ]
+      },
+      "H2": {
+        "bic": 672.0913884525509,
+        "chi2": 652.7781335033417,
+        "shift_dx_dy_px": [
+          0.08551426617073,
+          1.6686256690756447
+        ],
+        "amplitudes": [
+          265.6080694519947
+        ]
+      },
+      "H3": {
+        "bic": 677.1724308352191,
+        "chi2": 651.4214242362734,
+        "shift_dx_dy_px": [
+          0.08426363578901142,
+          1.6157436299903423
+        ],
+        "amplitudes": [
+          269.038126428591,
+          276.9962785580419
+        ]
+      }
+    }
+  },
+  "limitations": [
+    "Sin paralaje de SPHEREx",
+    "PSF y ruido sintéticos",
+    "Sin S_corr completo",
+    "Sin validación en FITS reales"
+  ]
+}

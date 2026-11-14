@@ -1,0 +1,5 @@
+# Date: Fri Nov 13 20:43:52 PST 2026 --- Download SPHEREx data from IRSA 
+https://irsa.ipac.caltech.edu/ibe/data/spherex/dr1/level2/2025W38_1A/l2b-v27-2026-237/6/level2_2025W38_1A_0596_1D6_spx_l2b-v27-2026-237.fits
+https://irsa.ipac.caltech.edu/ibe/cutout?ra=294.43003651&dec=-13.62324433&size=0.02&path=spherex/dr1/level2/2025W38_1A/l2b-v27-2026-237/6/level2_2025W38_1A_0596_1D6_spx_l2b-v27-2026-237.fits
+https://irsa.ipac.caltech.edu/ibe/data/spherex/qr3/level2/2026W39_2A/l2b-v27-2026-271/6/level2_2026W39_2A_0324_4D6_spx_l2b-v27-2026-271.fits
+https://irsa.ipac.caltech.edu/ibe/cutout?ra=295.13749638&dec=-16.59234218&size=0.02&path=spherex/qr3/level2/2026W39_2A/l2b-v27-2026-271/6/level2_2026W39_2A_0324_4D6_spx_l2b-v27-2026-271.fits
