@@ -335,10 +335,6 @@ export default function PreviewPanel() {
             }}
             onSearch={search}
             onReset={resetViewer}
-            onInfo={() => {
-              setMenuSection(0);
-              setMenuOpen(true);
-            }}
             disabled={!frame}
           />
           {selected && cardOpen && (
