@@ -3,7 +3,7 @@ from astropy.table import Table
 from pydantic import ValidationError
 
 from app.clients.irsa import IrsaResponseError
-from app.schemas.sia import SiaQuery
+from app.schemas.sia import SiaQuery, SiaResponse
 from app.services.sia import transform_sia_results
 
 from io import BytesIO
@@ -422,3 +422,107 @@ def test_endpoint_sia_valida_antes_de_consultar(
 
     assert response.status_code == 422
     assert backend_sia_local["requests"] == []
+def crear_respuesta_sia_para_validacion():
+    """Obtiene una respuesta de ejemplo sin consultar servicios externos."""
+    query = SiaQuery(
+        collection="spherex_qr2",
+        ra=210.8022671,
+        dec=54.34895,
+        band="SPHEREx-D4",
+        limit=2,
+    )
+
+    response = transform_sia_results(
+        crear_tabla("spherex_qr2"),
+        query,
+    )
+
+    return response.model_dump(mode="json")
+
+
+def test_modelo_sia_acepta_respuesta_coherente():
+    data = crear_respuesta_sia_para_validacion()
+
+    response = SiaResponse.model_validate(data)
+
+    assert response.collection == response.query.collection
+    assert response.count == len(response.observations)
+    assert response.observations[0].band == response.query.band
+
+
+def test_modelo_sia_rechaza_coleccion_de_respuesta_incoherente():
+    data = crear_respuesta_sia_para_validacion()
+    data["collection"] = "spherex_qr3"
+
+    with pytest.raises(
+        ValidationError,
+        match="La colección de la respuesta",
+    ):
+        SiaResponse.model_validate(data)
+
+
+def test_modelo_sia_rechaza_coleccion_de_observacion_incoherente():
+    data = crear_respuesta_sia_para_validacion()
+    data["observations"][0]["collection"] = "spherex_qr3"
+
+    with pytest.raises(
+        ValidationError,
+        match="La colección de una observación",
+    ):
+        SiaResponse.model_validate(data)
+
+
+def test_modelo_sia_rechaza_banda_de_observacion_incoherente():
+    data = crear_respuesta_sia_para_validacion()
+    data["observations"][0]["band"] = "SPHEREx-D2"
+
+    with pytest.raises(
+        ValidationError,
+        match="La banda de una observación",
+    ):
+        SiaResponse.model_validate(data)
+
+
+def test_modelo_sia_rechaza_coleccion_incoherente_sin_observaciones():
+    data = crear_respuesta_sia_para_validacion()
+    data["observations"] = []
+    data["count"] = 0
+    data["collection"] = "spherex_qr3"
+
+    with pytest.raises(
+        ValidationError,
+        match="La colección de la respuesta",
+    ):
+        SiaResponse.model_validate(data)
+
+@pytest.mark.parametrize(
+    ("column", "value"),
+    [
+        ("t_min", float("nan")),
+        ("t_max", -1.0),
+        ("s_ra", 360.0),
+        ("s_dec", 91.0),
+        ("obs_publisher_did", ""),
+        ("obs_id", ""),
+        ("access_url", "no-es-una-url"),
+        ("access_format", ""),
+    ],
+)
+def test_sia_controla_valores_externos_invalidos(column, value):
+    """Los datos inválidos deben producir un error controlado."""
+    table = crear_tabla("spherex_qr2")
+
+    # Reemplazamos la columna para conservar el valor de prueba
+    # sin que el tipo original de Astropy lo transforme o recorte.
+    table.replace_column(column, [value])
+
+    query = SiaQuery(
+        collection="spherex_qr2",
+        ra=210.8022671,
+        dec=54.34895,
+        band="SPHEREx-D4",
+        limit=2,
+    )
+
+    with pytest.raises(IrsaResponseError):
+        transform_sia_results(table, query)

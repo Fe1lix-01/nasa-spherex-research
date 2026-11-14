@@ -57,14 +57,18 @@ def build_query(query: IrsaQuery) -> str:
 class IrsaClient:
     """Cliente reutilizable para una consulta de metadatos."""
 
+    def __init__(self, timeout: httpx.Timeout | None = None):
+        if timeout is None:
+            timeout = httpx.Timeout(
+                connect=10.0,
+                read=60.0,
+                write=10.0,
+                pool=10.0,
+            )
+
+        self.timeout = timeout
+
     def fetch_observations_csv(self, query: IrsaQuery) -> str:
-        # Se configura explícitamente cada tipo de timeout.
-        timeout = httpx.Timeout(
-            connect=10.0,
-            read=60.0,
-            write=10.0,
-            pool=10.0,
-        )
 
         params = {
             "REQUEST": "doQuery",
@@ -76,7 +80,7 @@ class IrsaClient:
         # Crear o importar esta clase no consulta IRSA.
         # La solicitud ocurre únicamente al llamar al método.
         with httpx.Client(
-            timeout=timeout,
+            timeout=self.timeout,
             follow_redirects=True,
         ) as client:
             for attempt in range(MAX_ATTEMPTS):

@@ -11,6 +11,19 @@ from app.main import app
 from app.schemas.irsa import IrsaQuery, IrsaResponse
 from app.services.irsa import normalize_observations
 
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from threading import Event, Thread
+from urllib.parse import parse_qs, urlsplit
+
+import httpx
+
+from app.clients import irsa as irsa_client
+from app.clients.irsa import (
+    IrsaClient,
+    IrsaTimeoutError,
+    IrsaUnavailableError,
+)
+
 
 HEADER = (
     "time_bounds_lower,time_bounds_upper,"
@@ -174,3 +187,134 @@ def test_invalid_parameters_return_422():
         )
 
     assert response.status_code == 422
+
+@pytest.fixture
+def backend_tap_local(monkeypatch):
+    """Servidor HTTP controlado para probar el cliente TAP."""
+    state = {
+        "statuses": [200],
+        "content": HEADER.encode("utf-8"),
+        "delay": 0,
+        "requests": [],
+    }
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, format, *args):
+            pass
+
+        def do_GET(self):
+            index = len(state["requests"])
+            state["requests"].append(
+                parse_qs(urlsplit(self.path).query)
+            )
+
+            statuses = state["statuses"]
+            status = statuses[min(index, len(statuses) - 1)]
+            content = state["content"]
+
+            self.send_response(status)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            self.wfile.flush()
+
+            Event().wait(state["delay"])
+
+            try:
+                self.wfile.write(content)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    server.daemon_threads = True
+
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    host, port = server.server_address
+
+    monkeypatch.setattr(
+        irsa_client,
+        "IRSA_TAP_URL",
+        f"http://{host}:{port}/TAP/sync",
+    )
+
+    try:
+        yield state
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+
+def test_tap_http_success(backend_tap_local, query):
+    result = IrsaClient().fetch_observations_csv(query)
+
+    assert result == HEADER
+    assert len(backend_tap_local["requests"]) == 1
+
+    request = backend_tap_local["requests"][0]
+
+    assert request["REQUEST"] == ["doQuery"]
+    assert request["LANG"] == ["ADQL"]
+    assert request["FORMAT"] == ["csv"]
+    assert request["QUERY"] == [build_query(query)]
+
+
+@pytest.mark.parametrize("status", [400, 404])
+def test_tap_does_not_retry_permanent_error(
+    backend_tap_local,
+    query,
+    status,
+):
+    backend_tap_local["statuses"] = [status]
+
+    with pytest.raises(IrsaResponseError):
+        IrsaClient().fetch_observations_csv(query)
+
+    assert len(backend_tap_local["requests"]) == 1
+
+
+@pytest.mark.parametrize("status", [429, 502, 503, 504])
+def test_tap_limits_transient_retries(
+    backend_tap_local,
+    query,
+    status,
+):
+    backend_tap_local["statuses"] = [status]
+
+    with pytest.raises(IrsaUnavailableError):
+        IrsaClient().fetch_observations_csv(query)
+
+    assert len(backend_tap_local["requests"]) == 3
+
+
+def test_tap_recovers_after_transient_error(
+    backend_tap_local,
+    query,
+):
+    backend_tap_local["statuses"] = [503, 200]
+
+    result = IrsaClient().fetch_observations_csv(query)
+
+    assert result == HEADER
+    assert len(backend_tap_local["requests"]) == 2
+
+
+def test_tap_read_timeout(
+    backend_tap_local,
+    query,
+):
+    backend_tap_local["delay"] = 0.5
+
+    timeout = httpx.Timeout(
+        connect=2.0,
+        read=0.1,
+        write=2.0,
+        pool=2.0,
+    )
+
+    with pytest.raises(IrsaTimeoutError):
+        IrsaClient(timeout=timeout).fetch_observations_csv(query)
+
+    assert len(backend_tap_local["requests"]) == 3

@@ -54,11 +54,6 @@ def get_objects(q: str | None = None):
             status_code=503,
             detail="El registro remoto de observaciones no está disponible o es inválido",
         ) from None
-    except RemoteCatalogError:
-        raise HTTPException(
-            status_code=503,
-            detail="El registro remoto de observaciones no está disponible o es inválido",
-        ) from None
     except ValueError:
          # El servicio no pudo interpretar algún nombre.
         raise HTTPException(
@@ -93,6 +88,13 @@ def get_object_by_id(object_id: str):
             status_code=503,
             detail="El catálogo local de observaciones no está disponible",
         ) from None
+
+    except RemoteCatalogError:
+        raise HTTPException(
+            status_code=503,
+            detail="El registro remoto de observaciones no está disponible o es inválido",
+        ) from None
+
     except ValueError:
         raise HTTPException(
             status_code=503,

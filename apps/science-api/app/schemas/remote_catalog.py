@@ -44,26 +44,11 @@ class RemoteCatalogSnapshot(BaseModel):
 
     @model_validator(mode="after")
     def validate_observations(self):
-        result = self.result
+        """Comprueba la unicidad de los productos del registro."""
+        # SiaResponse valida la coherencia de colección y banda.
+        product_ids: set[str] = set()
 
-        if result.collection != result.query.collection:
-            raise ValueError(
-                "La colección del resultado difiere de la consulta."
-            )
-
-        product_ids = set()
-
-        for observation in result.observations:
-            if observation.collection != result.query.collection:
-                raise ValueError(
-                    "Una observación pertenece a otra colección."
-                )
-
-            if observation.band != result.query.band:
-                raise ValueError(
-                    "Una observación pertenece a otro detector."
-                )
-
+        for observation in self.result.observations:
             if observation.product_id in product_ids:
                 raise ValueError(
                     "El registro contiene productos duplicados."

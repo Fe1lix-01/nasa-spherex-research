@@ -1,10 +1,12 @@
 # La importacion de BaseModel permite definir modelos de datos con Pydantic.
 # Y la importacion de Field permite agregar restricciones a sus campos.
-from pydantic import BaseModel, Field
+from typing import Self
+
+from pydantic import BaseModel, Field, model_validator
 
 # Aqui se reutilza el modelo de Observacion que ya existe.
 # De esta manera no se repite la definicion de sus campos.
-from app.schemas.observations import Observations
+from app.schemas.observations import Detector, Observations
 
 from app.schemas.remote_catalog import SpatialAssociation
 from app.schemas.sia import SiaObservation, SiaQuery
@@ -22,7 +24,22 @@ class AstronomicalObjectSummary(BaseModel):
     remote_observation_count: int = Field(default=0, ge=0)
     # Lista de detectores disponibles.
     # Ejemplo: ["D1", "D2", "D3"].
-    detectors: list[str]
+    detectors: list[Detector]
+
+    @model_validator(mode="after")
+    def validate_observation_counts(self) -> Self:
+        expected_total = (
+            self.local_observation_count
+            + self.remote_observation_count
+        )
+
+        if self.observation_count != expected_total:
+            raise ValueError(
+                "observation_count debe coincidir con la suma "
+                "de local_observation_count y remote_observation_count"
+            )
+
+        return self
 
 class SciencePreview(BaseModel):
     title: str
@@ -40,6 +57,21 @@ class AstronomicalObjectDetail(AstronomicalObjectSummary):
     remote_query: SiaQuery | None = None
     science_preview: SciencePreview | None = None
 
+    @model_validator(mode="after")
+    def validate_observation_lists(self) -> Self:
+        if self.local_observation_count != len(self.observations):
+            raise ValueError(
+                "local_observation_count debe coincidir "
+                "con la cantidad de observations"
+            )
+
+        if self.remote_observation_count != len(self.remote_observations):
+            raise ValueError(
+                "remote_observation_count debe coincidir "
+                "con la cantidad de remote_observations"
+            )
+
+        return self
 # Representa la respuesta del listado completo.
 class ObjectsResponse(BaseModel):
      # Cantidad de OBJETOS encontrados después del filtro.
@@ -47,3 +79,12 @@ class ObjectsResponse(BaseModel):
     total: int = Field(ge=0)
     # Lista de resúmenes de los objetos encontrados.
     objects: list[AstronomicalObjectSummary]
+
+    @model_validator(mode="after")
+    def validate_total(self) -> Self:
+        if self.total != len(self.objects):
+            raise ValueError(
+                "total debe coincidir con la cantidad de objects"
+            )
+
+        return self

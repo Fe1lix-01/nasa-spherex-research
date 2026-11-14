@@ -67,25 +67,20 @@ def list_objects(q: str | None = None) -> list[dict]:
 
 # Recorremos cada observación del catálogo.
     for observation in observations:
-
-         # Obtenemos el nombre del objeto desde el archivo.
         name = extract_object_name(observation["filename"])
+        group_key = name.casefold()
 
-
-# Si es la primera observación de ese objeto,
-        # creamos su grupo.
-        if name not in grouped:
-            grouped[name] = {
-                "id": make_object_id(name),
+        if group_key not in grouped:
+            grouped[group_key] = {
                 "name": name,
                 "observations": [],
             }
 
-# Agregamos la observación a su grupo.
-        #
-        # Si después aparece otro archivo del mismo objeto,
-        # se agrega aquí en lugar de crear otro objeto.
-        grouped[name]["observations"].append(observation)
+        group = grouped[group_key]
+
+        # Elegir el mismo nombre independientemente del orden de entrada.
+        group["name"] = min(group["name"], name)
+        group["observations"].append(observation)
 
 # Lista final de objetos.
     objects = []
@@ -106,7 +101,7 @@ def list_objects(q: str | None = None) -> list[dict]:
 # Construimos la información final del objeto.
         objects.append(
             {
-                "id": item["id"],
+                "id": make_object_id(item["name"]),
                 "name": item["name"],
                 # Cuenta cuántos archivos tiene este objeto.
                 "observation_count": len(associated_observations),
@@ -158,6 +153,12 @@ def list_objects(q: str | None = None) -> list[dict]:
                 "observations": [],
             }
             objects.append(target)
+
+        else:
+            # Incluir el nombre del registro remoto en la misma política.
+            preferred_name = min(target["name"], target_name)
+            target["name"] = preferred_name
+            target["id"] = make_object_id(preferred_name)
 
         # El esquema del registro ya comprueba product_id duplicados.
         target["remote_observations"] = [
@@ -225,13 +226,18 @@ def list_objects(q: str | None = None) -> list[dict]:
 
 
 def get_object(object_id: str) -> dict | None:
-    """Busca un objeto por su identificador estable."""
-    # Reutiliza la agrupación anterior.
+    """Busca el objeto por su ID principal o una variante local presente."""
     for item in list_objects():
-    # Si encontramos el ID, devolvemos el objeto completo.
         if item["id"] == object_id:
             return item
 
- # Si ningún objeto coincide, devolvemos None.
-    # El router lo transformará en HTTP 404.
+        # Conservar acceso por los IDs de las variantes agrupadas.
+        for observation in item["observations"]:
+            original_name = extract_object_name(
+                observation["filename"]
+            )
+
+            if make_object_id(original_name) == object_id:
+                return item
+
     return None

@@ -1,9 +1,11 @@
 from pydantic import BaseModel
 from typing import Literal
 
+Detector = Literal["D1", "D2", "D3", "D4", "D5", "D6"]
+
 class Observations(BaseModel):                          ## Definimos como debe verse una observacion individual ##
     id: str
-    detector: Literal['D1','D2','D3','D4','D5','D6']
+    detector: Detector
     filename: str
     format: Literal['FITS']
 

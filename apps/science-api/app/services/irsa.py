@@ -60,23 +60,19 @@ def normalize_observations(
             start_mjd = float(row["time_bounds_lower"])
             end_mjd = float(row["time_bounds_upper"])
 
-            # Pydantic valida números, banda, URL y orden temporal.
-            observation = IrsaObservation(
-                start_mjd=start_mjd,
-                end_mjd=end_mjd,
-                start_utc="pendiente",
-                band=band,
-                cutout_url=row["cutout_url"].strip(),
-            )
-
-            # La fecha se deriva del dato recibido, no se inventa.
+            # Derivar la fecha del dato recibido antes de crear el modelo.
             start_utc = (
                 Time(start_mjd, format="mjd", scale="utc").isot
                 + "Z"
             )
 
-            observation = observation.model_copy(
-                update={"start_utc": start_utc}
+            # Validar juntos todos los valores finales de la observación.
+            observation = IrsaObservation(
+                start_mjd=start_mjd,
+                end_mjd=end_mjd,
+                start_utc=start_utc,
+                band=band,
+                cutout_url=row["cutout_url"].strip(),
             )
 
             observations.append(observation)

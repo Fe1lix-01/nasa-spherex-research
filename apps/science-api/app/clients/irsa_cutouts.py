@@ -69,7 +69,13 @@ def _fetch_cutout(
 
 def download_irsa_cutout(url: str, ra: float, dec: float) -> bytes:
     """Valida el producto registrado y solicita su recorte a IRSA."""
-    parsed = urlsplit(url)
+    try:
+        parsed = urlsplit(url)
+    except ValueError as error:
+        raise IrsaResponseError(
+            "La URL del producto IRSA no es válida."
+        ) from error
+
     allowed_origin = urlsplit(IRSA_CUTOUT_ORIGIN)
 
     if (

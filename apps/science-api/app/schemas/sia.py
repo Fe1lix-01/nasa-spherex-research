@@ -83,13 +83,34 @@ class SiaResponse(BaseModel):
     observations: list[SiaObservation]
 
     @model_validator(mode="after")
-    def validate_count(self):
+    def validate_response(self):
+        """Comprueba los conteos y la correspondencia con la consulta."""
         if self.count != len(self.observations):
             raise ValueError(
                 "El conteo debe coincidir con las observaciones devueltas"
             )
 
         if self.count > self.query.limit:
-            raise ValueError("La respuesta supera el límite solicitado")
+            raise ValueError(
+                "La respuesta supera el límite solicitado"
+            )
+
+        if self.collection != self.query.collection:
+            raise ValueError(
+                "La colección de la respuesta no coincide con la consulta"
+            )
+
+        for observation in self.observations:
+            if observation.collection != self.query.collection:
+                raise ValueError(
+                    "La colección de una observación no coincide "
+                    "con la consulta"
+                )
+
+            if observation.band != self.query.band:
+                raise ValueError(
+                    "La banda de una observación no coincide "
+                    "con la consulta"
+                )
 
         return self

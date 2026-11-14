@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from app.services import remote_catalog as remote_catalog_service
 from app.main import app
 from app.services import observations as observations_service
-from app.services.objects import list_objects
+from app.services.objects import list_objects, make_object_id
 
 # Cliente HTTP de prueba conectado a nuestra aplicación.
 client = TestClient(app)
@@ -319,3 +319,120 @@ def test_existing_m101_gets_preview_without_duplicates(
     assert search.status_code == 200
     assert search.json()["total"] == 1
     assert search.json()["objects"][0]["id"] == m101["id"]
+
+def test_case_variants_are_grouped_as_one_object(
+    monkeypatch,
+    sample_catalog,
+):
+    observations = (
+        make_observations("M101", ["D1"])
+        + make_observations("m101", ["D2"])
+    )
+
+    monkeypatch.setattr(
+        observations_service,
+        "list_observations",
+        lambda: observations,
+    )
+
+    response = client.get("/api/v1/objects")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["total"] == 1
+    assert len(data["objects"]) == 1
+
+    item = data["objects"][0]
+
+    assert item["local_observation_count"] == 2
+    assert item["observation_count"] == 2
+    assert item["detectors"] == ["D1", "D2"]
+
+    detail = client.get(f"/api/v1/objects/{item['id']}")
+
+    assert detail.status_code == 200
+    assert len(detail.json()["observations"]) == 2
+
+
+def test_case_variants_keep_identity_when_order_changes(
+    monkeypatch,
+    sample_catalog,
+):
+    observations = (
+        make_observations("M101", ["D1"])
+        + make_observations("m101", ["D2"])
+    )
+
+    monkeypatch.setattr(
+        observations_service,
+        "list_observations",
+        lambda: observations,
+    )
+
+    first = list_objects()
+
+    monkeypatch.setattr(
+        observations_service,
+        "list_observations",
+        lambda: list(reversed(observations)),
+    )
+
+    second = list_objects()
+
+    assert len(first) == 1
+    assert len(second) == 1
+    assert first[0]["id"] == second[0]["id"]
+    assert first[0]["name"] == second[0]["name"]
+
+@pytest.mark.parametrize("original_name", ["M101", "m101"])
+def test_grouped_case_variants_keep_original_ids_accessible(
+    monkeypatch,
+    sample_catalog,
+    original_name,
+):
+    observations = (
+        make_observations("M101", ["D1"])
+        + make_observations("m101", ["D2"])
+    )
+
+    monkeypatch.setattr(
+        observations_service,
+        "list_observations",
+        lambda: observations,
+    )
+
+    listed = client.get("/api/v1/objects").json()
+    canonical_id = listed["objects"][0]["id"]
+    original_id = make_object_id(original_name)
+
+    response = client.get(f"/api/v1/objects/{original_id}")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == canonical_id
+    assert response.json()["local_observation_count"] == 2
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["M101", "m101", "T2 SIMP J013656.5+093347.3"],
+)
+def test_single_name_keeps_existing_id(
+    monkeypatch,
+    sample_catalog,
+    name,
+):
+    observations = make_observations(name, ["D1"])
+
+    monkeypatch.setattr(
+        observations_service,
+        "list_observations",
+        lambda: observations,
+    )
+
+    objects = list_objects()
+
+    assert len(objects) == 1
+    assert objects[0]["name"] == name
+    assert objects[0]["id"] == make_object_id(name)

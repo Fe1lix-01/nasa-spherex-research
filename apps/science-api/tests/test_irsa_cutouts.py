@@ -132,8 +132,9 @@ def test_timeout_durante_descarga(servidor):
         "https://irsa.ipac.caltech.edu/ibe/data/spherex/test.txt",
         "https://irsa.ipac.caltech.edu/ibe/data/spherex/test.fits?x=1",
         "https://irsa.ipac.caltech.edu/ibe/data/spherex/test.fits#fragment",
+        "https://[irsa.ipac.caltech.edu/ibe/data/spherex/test.fits",
     ],
 )
 def test_rechaza_url_no_permitida(url):
     with pytest.raises(IrsaResponseError, match="URL del producto"):
-        download_irsa_cutout(url, ra=210.8, dec=54.3)
+     download_irsa_cutout(url, ra=210.8, dec=54.3)

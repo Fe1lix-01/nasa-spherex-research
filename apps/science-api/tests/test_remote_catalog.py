@@ -115,6 +115,13 @@ def test_registro_valido(entorno, registro):
 
 
 @pytest.mark.parametrize(
+    "url",
+    [
+        "/api/v1/objects",
+        f"/api/v1/objects/{make_object_id('M101')}",
+    ],
+)
+@pytest.mark.parametrize(
     "contenido",
     [
         "{JSON incompleto",
@@ -122,7 +129,7 @@ def test_registro_valido(entorno, registro):
         '{"schema_version": 99}',
     ],
 )
-def test_registro_invalido(entorno, contenido):
+def test_registro_invalido(entorno, contenido, url):
     _, path = entorno
     path.write_text(contenido, encoding="utf-8")
 
@@ -130,7 +137,7 @@ def test_registro_invalido(entorno, contenido):
         remote_catalog_service.load_m101_snapshot()
 
     with TestClient(app) as client:
-        response = client.get("/api/v1/objects")
+        response = client.get(url)
 
     assert response.status_code == 503
     assert response.json()["detail"] == (
@@ -331,3 +338,193 @@ def test_preview_timeout_devuelve_504(
         server.shutdown()
         server.server_close()
         thread.join()
+
+def test_catalogo_local_funciona_sin_registro_remoto(entorno):
+    fits_dir, _ = entorno
+
+    # El catálogo enumera el nombre; esta prueba no procesa sus píxeles.
+    (fits_dir / "SIMP_D1_test.fits").touch()
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/objects")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["total"] == 1
+    assert data["objects"][0]["name"] == "SIMP"
+    assert data["objects"][0]["local_observation_count"] == 1
+    assert data["objects"][0]["remote_observation_count"] == 0
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "/api/v1/objects",
+        f"/api/v1/objects/{make_object_id('M101')}",
+    ],
+)
+def test_directorio_local_obligatorio_con_registro_remoto_valido(
+    entorno,
+    registro,
+    monkeypatch,
+    url,
+):
+    fits_dir, metadata_path = entorno
+    guardar(metadata_path, registro)
+
+    monkeypatch.setattr(
+        observations_service,
+        "FITS_DIR",
+        fits_dir / "directorio_inexistente",
+    )
+
+    with TestClient(app) as client:
+        response = client.get(url)
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == (
+        "El catálogo local de observaciones no está disponible"
+    )
+    assert str(fits_dir) not in response.text
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "/api/v1/objects?q=SIMP",
+        f"/api/v1/objects/{make_object_id('SIMP')}",
+    ],
+)
+def test_registro_remoto_invalido_bloquea_catalogo_local(
+    entorno,
+    url,
+):
+    fits_dir, metadata_path = entorno
+
+    (fits_dir / "SIMP_D1_test.fits").touch()
+    metadata_path.write_text("{JSON incompleto", encoding="utf-8")
+
+    with TestClient(app) as client:
+        response = client.get(url)
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == (
+        "El registro remoto de observaciones no está disponible o es inválido"
+    )
+    assert str(metadata_path) not in response.text
+
+@pytest.mark.parametrize(
+    "scenario",
+    ["utf8_invalido", "directorio"],
+)
+@pytest.mark.parametrize(
+    "url",
+    [
+        "/api/v1/objects",
+        f"/api/v1/objects/{make_object_id('M101')}",
+    ],
+)
+def test_errores_de_lectura_del_registro_remoto(
+    entorno,
+    scenario,
+    url,
+):
+    """Los errores de lectura deben controlarse sin exponer rutas."""
+    _, path = entorno
+
+    if scenario == "utf8_invalido":
+        path.write_bytes(b"\xff\xfe\xfa")
+    else:
+        path.mkdir()
+
+    # El servicio comunica un error propio, independiente de FastAPI.
+    with pytest.raises(
+        remote_catalog_service.RemoteCatalogError,
+        match="No fue posible leer",
+    ):
+        remote_catalog_service.load_m101_snapshot()
+
+    # El router convierte ese error en una respuesta HTTP controlada.
+    with TestClient(app) as client:
+        response = client.get(url)
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == (
+        "El registro remoto de observaciones no está disponible o es inválido"
+    )
+    assert str(path) not in response.text
+
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        "coleccion_respuesta",
+        "coleccion_observacion",
+        "banda_observacion",
+        "coleccion_respuesta_vacia",
+    ],
+)
+def test_registro_remoto_rechaza_incoherencias_sia(
+    entorno,
+    registro,
+    scenario,
+):
+    """El registro debe conservar las validaciones de SiaResponse."""
+    _, path = entorno
+    result = registro["result"]
+
+    if scenario == "coleccion_respuesta":
+        result["collection"] = "spherex_qr3"
+
+    elif scenario == "coleccion_observacion":
+        result["observations"][0]["collection"] = "spherex_qr3"
+
+    elif scenario == "banda_observacion":
+        result["observations"][0]["band"] = "SPHEREx-D2"
+
+    else:
+        result["observations"] = []
+        result["count"] = 0
+        result["collection"] = "spherex_qr3"
+
+    guardar(path, registro)
+
+    with pytest.raises(
+        remote_catalog_service.RemoteCatalogError,
+        match="estructura inválida",
+    ):
+
+        remote_catalog_service.load_m101_snapshot()
+
+def test_preview_url_malformada_invalida_el_registro(
+    entorno,
+    registro,
+):
+    """Pydantic rechaza la URL antes de intentar una descarga."""
+    _, path = entorno
+
+    malformed_url = (
+        "https://[irsa.ipac.caltech.edu/"
+        "ibe/data/spherex/test.fits"
+    )
+
+    observation = registro["result"]["observations"][0]
+    observation["access_url"] = malformed_url
+
+    guardar(path, registro)
+
+    object_id = make_object_id("M101")
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/api/v1/objects/{object_id}/remote-preview",
+            params={"product_id": observation["product_id"]},
+        )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == (
+        "El catálogo de observaciones no está disponible"
+    )
+    assert str(path) not in response.text
+    assert malformed_url not in response.text
