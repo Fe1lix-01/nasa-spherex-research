@@ -8,6 +8,7 @@ import SimbadHint from "./SimbadHint";
 import SimbadSelectedRing from "./SimbadSelectedRing";
 import SimbadCard from "./SimbadCard";
 import SimbadStatus from "./SimbadStatus";
+import SimbadToggle from "./SimbadToggle";
 
 /* ------------------------------------------------------------------ */
 /* Aladin Lite, cargado desde la misma URL que usa el visor de Felix  */
@@ -143,13 +144,16 @@ export default function SkyStage({
   });
   const firstTarget = useRef(target);
 
+    // Interruptor de la capa de objetos de SIMBAD: empieza apagado para que el cielo arranque limpio.
+  const [showObjects, setShowObjects] = useState(false);
+
     // Capa SIMBAD: marcas de objetos conocidos, aviso al pasar el cursor y objeto elegido con clic.
   const simbadView = aladin ? (aladin.view as unknown as SimbadAladinView) : null;
   const simbad = useSimbadLayer({
     A: aladin ? (aladin.A as unknown as SimbadAladinApi) : null,
     view: simbadView,
     host: aladin ? aladin.host : null,
-    enabled: active, // solo se consulta mientras el mosaico está visible
+    enabled: active && showObjects, // solo se consulta con el mosaico visible y el interruptor encendido
   });
 
   // Crear el mapa (una sola vez).
@@ -418,6 +422,13 @@ export default function SkyStage({
 
           {/* Estado de la capa SIMBAD: "Acércate…" si el campo es muy ancho, o error de consulta. */}
           <SimbadStatus status={simbad.status} />
+
+          {/* Interruptor de la capa de objetos (el botón recibe clics aunque esta capa no). */}
+          <SimbadToggle
+            on={showObjects}
+            loading={simbad.status === "loading"}
+            onToggle={() => setShowObjects((v) => !v)}
+          />
 
           {/* Aviso de SIMBAD: una sola vez, fuera de los marcadores, para que use las coordenadas del visor. */}
           {simbad.hovered && <SimbadHint x={simbad.pointer.x} y={simbad.pointer.y} />}
