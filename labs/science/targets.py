@@ -121,4 +121,21 @@ TARGETS: dict[str, Target] = {
         # Sin respaldo: la posición se resuelve por nombre. Su movimiento propio es pequeño, así
         # que si no se consigue, el script avanza con movimiento cero y lo avisa.
     ),
+
+    "m42": Target(
+        key="m42",
+        alias=("M 42", "NGC 1976", "Orion Nebula"),
+        name="Nebulosa de Orión (M42)",
+        kind="nebula",
+        summary=(
+            "Nebulosa de Orión, una región de formación estelar a unos 1,300 años luz, la más "
+            "cercana donde nacen estrellas masivas. Las estrellas jóvenes del centro (el "
+            "Trapecio) calientan el gas y el polvo, que brillan en infrarrojo. No se desplaza: "
+            "las cinco imágenes son recortes reales de SPHEREx (IRSA) en la banda de 2.4 a 3.8 "
+            "micras y se ven casi iguales porque la nebulosa no cambia de posición entre "
+            "épocas. El centro es tan brillante que se ve como una mancha blanca."
+        ),
+        detector="D4",
+        cutout_deg=0.5,
+    ),
 }
