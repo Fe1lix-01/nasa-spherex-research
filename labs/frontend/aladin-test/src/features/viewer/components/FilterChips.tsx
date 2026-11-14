@@ -20,11 +20,11 @@ export default function FilterChips({ options, current, onSelect }: Props) {
       aria-label="Filtros de luz"
       sx={{
         display: "flex",
-        gap: 1.25,
+        gap: 0.75,
         overflowX: "auto",
         mx: -0.5,
         px: 0.5,
-        pb: 0.5,
+        pb: 0,
         scrollbarWidth: "none",
         "&::-webkit-scrollbar": { display: "none" },
       }}
@@ -32,7 +32,7 @@ export default function FilterChips({ options, current, onSelect }: Props) {
       {options.map((f, i) => {
         const on = i === current;
         return (
-                    <Chip
+          <Chip
             key={f.id}
             label={f.name}
             clickable
@@ -42,10 +42,10 @@ export default function FilterChips({ options, current, onSelect }: Props) {
             variant="outlined"
             sx={{
               flexShrink: 0,
-              height: 44,
+              height: 30,
               borderRadius: "999px",
-              fontSize: 15,
-              "& .MuiChip-label": { px: 2.5 },
+              fontSize: 13,
+              "& .MuiChip-label": { px: 1.5 },
               ...(on
                 ? {
                     // El borde propio se oculta y lo reemplaza el aro de luz (-1px = cubre el borde).

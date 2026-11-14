@@ -13,6 +13,8 @@ type Props = {
   min: number;
   max: number;
   disabled?: boolean;
+  /** Versión delgada: sin los números de mínimo y máximo. */
+  compact?: boolean;
   onChange: (value: number) => void;
 };
 
@@ -23,7 +25,7 @@ const EASE_RATE = 6;
 const LINGER_MS = 400;
 
 /** Slider con etiqueta, valor en ámbar y límites mínimo y máximo. */
-export default function LabeledSlider({ label, value, min, max, disabled, onChange }: Props) {
+export default function LabeledSlider({ label, value, min, max, disabled, compact, onChange }: Props) {
   // useId liga la etiqueta con el slider para que los lectores de pantalla lo anuncien.
   const labelId = useId();
 
@@ -71,10 +73,10 @@ export default function LabeledSlider({ label, value, min, max, disabled, onChan
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <Typography id={labelId} sx={{ fontSize: 15, color: "rgba(255,255,255,0.9)" }}>
+        <Typography id={labelId} sx={{ fontSize: compact ? 12 : 15, color: "rgba(255,255,255,0.9)" }}>
           {label}
         </Typography>
-        <Typography sx={{ fontSize: 14, fontWeight: 500, color: "#fff" }}>{value} %</Typography> 
+        <Typography sx={{ fontSize: compact ? 12 : 14, fontWeight: 500, color: "#fff" }}>{value} %</Typography>
       </Box>
 
       <Slider
@@ -102,23 +104,26 @@ export default function LabeledSlider({ label, value, min, max, disabled, onChan
           s.until = performance.now() + LINGER_MS;
           kick.current();
         }}
-                sx={{
+        sx={{
           height: 2,
-          mt: 0.5,
+          mt: compact ? 0 : 0.5,
           // Sin animación CSS: el giro del aro lo mueve el script de arriba, según la dirección.
           ...glowSliderParts(p, false),
+          py: compact ? "6px" : undefined,
           "&.Mui-disabled": { opacity: 0.35 },
         }}
       />
 
-      <Box sx={{ display: "flex", justifyContent: "space-between", mt: -0.5 }}>
-        <Typography variant="caption" sx={{ color: "text.disabled" }}>
-          {min} %
-        </Typography>
-        <Typography variant="caption" sx={{ color: "text.disabled" }}>
-          {max} %
-        </Typography>
-      </Box>
+      {!compact && (
+        <Box sx={{ display: "flex", justifyContent: "space-between", mt: -0.5 }}>
+          <Typography variant="caption" sx={{ color: "text.disabled" }}>
+            {min} %
+          </Typography>
+          <Typography variant="caption" sx={{ color: "text.disabled" }}>
+            {max} %
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 }
