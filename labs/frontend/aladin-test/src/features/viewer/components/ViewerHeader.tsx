@@ -13,7 +13,7 @@ type Props = {
 };
 
 export default function ViewerHeader({ filterLabel, menuOpen, onOpenMenu }: Props) {
-  
+
   // Movimiento de cada línea al abrir el menú: la de arriba y la de abajo giran
 // hacia el centro formando una X, y la del medio desaparece.
 const OPEN_LINE_STYLE = [
@@ -21,7 +21,7 @@ const OPEN_LINE_STYLE = [
   { opacity: 0 },
   { transform: "translateY(-6px) rotate(-45deg)" },
 ];
-  
+
   return (
       <Box
         component="header"
@@ -116,6 +116,6 @@ const OPEN_LINE_STYLE = [
             ))}
           </Box>
         </IconButton>
-      </Box>  
+      </Box>
     );
 }

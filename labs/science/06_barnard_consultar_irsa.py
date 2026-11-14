@@ -1,10 +1,3 @@
-
-"""Práctica 6: consultar observaciones SPHEREx de Barnard.
-
-Basado en el tutorial oficial de IRSA.
-Esta práctica NO descarga imágenes FITS.
-"""
-
 import argparse
 import csv
 from pathlib import Path
@@ -116,7 +109,7 @@ def main():
     output_path = output_dir / f"barnard_{args.detector}.csv"
 
     records = []
-    
+
 
     for row in table:
         mjd = float(row["observation_mjd"])
