@@ -77,6 +77,8 @@ export default function PreviewPanel() {
   const [marker, setMarker] = useState<Marker | null>(null);
   const [outside, setOutside] = useState(false);
   const [selected, setSelected] = useState<MovingObject | null>(null);
+  const [cardOpen, setCardOpen] = useState(true); // la tarjeta se puede cerrar sin deseleccionar el objeto
+  const [epochsOpen, setEpochsOpen] = useState(true); // mostrar u ocultar selector de modo y reproducción
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSection, setMenuSection] = useState<number | null>(0);
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -132,6 +134,7 @@ export default function PreviewPanel() {
     goSky(ra, dec, CLOSE_UP_FOV_DEG);
     // Si las coordenadas caen cerca de un candidato (0.5°), abrimos su recuadro.
     setSelected(matchObject(ra, dec, objects, 0.5));
+    setCardOpen(true);
   };
 
   const pickCandidate = (obj: MovingObject) => {
@@ -143,6 +146,7 @@ export default function PreviewPanel() {
     // Los recortes reales son pequeños (unos minutos de arco), así que hay que acercarse más.
     goSky(first.ra, first.dec, real ? REAL_CLOSE_UP_FOV_DEG : CLOSE_UP_FOV_DEG);
     setSelected(obj);
+    setCardOpen(true);
     if (real) setMode("sky"); // las imágenes reales solo se ven sobre el mosaico
     clock.seek(0);
   };
@@ -263,18 +267,20 @@ export default function PreviewPanel() {
               Ese punto está fuera de esta imagen.
             </Typography>
           )}
-          <ModeToggle value={mode} onChange={changeMode} />
-          {epochCount > 1 && shownEpochs.length > 1 && (
-            <PlaybackBar
-              epochs={shownEpochs}
-              t={clock.t}
-              playing={clock.playing}
-              speed={clock.speed}
-              onToggle={clock.toggle}
-              onSeek={clock.seek}
-              onSpeed={clock.setSpeed}
-            />
-          )}
+          <CollapsiblePanel open={epochsOpen} onToggle={() => setEpochsOpen((o) => !o)}>
+            <ModeToggle value={mode} onChange={changeMode} />
+            {epochCount > 1 && shownEpochs.length > 1 && (
+              <PlaybackBar
+                epochs={shownEpochs}
+                t={clock.t}
+                playing={clock.playing}
+                speed={clock.speed}
+                onToggle={clock.toggle}
+                onSeek={clock.seek}
+                onSpeed={clock.setSpeed}
+              />
+            )}
+          </CollapsiblePanel>
           <CollapsiblePanel open={filtersOpen} onToggle={() => setFiltersOpen((o) => !o)}>
             <ControlPanel
               filters={FILTERS}
@@ -335,8 +341,8 @@ export default function PreviewPanel() {
             }}
             disabled={!frame}
           />
-          {selected && (
-            <PreviewCard object={selected} epochs={shownEpochs} onClose={() => setSelected(null)} />
+          {selected && cardOpen && (
+            <PreviewCard object={selected} epochs={shownEpochs} onClose={() => setCardOpen(false)} />
           )}
           <MenuDrawer
             open={menuOpen}

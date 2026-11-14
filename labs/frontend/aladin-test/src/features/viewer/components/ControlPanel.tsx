@@ -3,7 +3,6 @@
 import { useRef, type ChangeEvent } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
 import FileUploadOutlined from "@mui/icons-material/FileUploadOutlined";
 import HelpOutlined from "@mui/icons-material/HelpOutlined";
@@ -68,26 +67,34 @@ export default function ControlPanel({
       elevation={0}
       sx={{
         ...glassPanel,
-        borderRadius: "28px",
+        borderRadius: { xs: "18px", lg: "999px" },
         // MUI agrega un degradado claro a los Paper en modo oscuro; se anula para
         // que el vidrio se vea parejo.
         backgroundImage: "none",
-        p: { xs: 2.5, sm: 3 },
+        px: { xs: 1.5, lg: 2.5 },
+        py: { xs: 1, lg: 0.75 },
+        // Barra delgada: en pantallas grandes todo va en una sola fila.
+        display: "flex",
+        flexDirection: { xs: "column", lg: "row" },
+        alignItems: { xs: "stretch", lg: "center" },
+        gap: { xs: 1, lg: 2.5 },
       }}
     >
-      <FilterChips options={filters} current={current} onSelect={onSelect} />
-
-      <Divider sx={{ my: 2.5 }} />
+      <Box sx={{ minWidth: 0, flex: { lg: "1 1 auto" } }}>
+        <FilterChips options={filters} current={current} onSelect={onSelect} />
+      </Box>
 
       {/* Sliders */}
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-          gap: { xs: 2.5, sm: 4 },
+          gridTemplateColumns: "1fr 1fr",
+          gap: { xs: 2, lg: 3 },
+          flex: { lg: "0 0 340px" },
         }}
       >
         <LabeledSlider
+          compact
           label="Aplicación del filtro"
           value={inten}
           min={0}
@@ -95,20 +102,18 @@ export default function ControlPanel({
           disabled={intensityDisabled}
           onChange={onInten}
         />
-        <LabeledSlider label="Intensidad de luz" value={gain} min={10} max={300} onChange={onGain} />
+        <LabeledSlider compact label="Intensidad de luz" value={gain} min={10} max={300} onChange={onGain} />
       </Box>
 
       {/* Ayuda · Subir imagen · Escena demo */}
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          alignItems: "center",
-          gap: 1,
-          mt: 2.5,
-        }}
-      >
-        <Button color="inherit" startIcon={<HelpOutlined />} onClick={onHelp} sx={{ ...quietButton, justifySelf: "start" }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 0.5 }}>
+        <Button
+          color="inherit"
+          size="small"
+          startIcon={<HelpOutlined />}
+          onClick={onHelp}
+          sx={{ ...quietButton, fontSize: 12 }}
+        >
           Ayuda
         </Button>
 
@@ -116,11 +121,12 @@ export default function ControlPanel({
           <FileUploadOutlined sx={{ fontSize: 18 }} />
           Subir imagen
         </AnimatedButton>
-        
+
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFile} />
 
         <Button
           color="inherit"
+          size="small"
           onClick={onDemo}
           // Indica a lectores de pantalla si la escena demo es la que está activa.
           aria-pressed={isDemo}
@@ -135,7 +141,7 @@ export default function ControlPanel({
               }}
             />
           }
-          sx={{ ...quietButton, justifySelf: "end", color: "rgba(255,255,255,0.7)" }}
+          sx={{ ...quietButton, fontSize: 12, whiteSpace: "nowrap", color: "rgba(255,255,255,0.7)" }}
         >
           Escena demo
         </Button>
