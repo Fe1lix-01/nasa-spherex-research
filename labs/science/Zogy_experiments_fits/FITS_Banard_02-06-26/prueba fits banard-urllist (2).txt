@@ -1,0 +1,2 @@
+# Date: Mon Nov 09 06:50:13 PST 2026 --- Download SPHEREx data from IRSA 
+https://irsa.ipac.caltech.edu/ibe/cutout?ra=294.43006336&dec=-13.62322192&size=0.05&path=spherex/qr2/level2/2025W38_1A/l2b-v20-2025-268/6/level2_2025W38_1A_0596_1D6_spx_l2b-v20-2025-268.fits
