@@ -1,0 +1,30 @@
+# Framework para construir la API REST.
+fastapi==0.162.0
+
+# Validación y serialización de los datos de la API.
+pydantic==2.14.1
+
+# Servidor ASGI que ejecuta FastAPI.
+uvicorn==0.54.0
+
+# Cliente HTTP para consumir servicios externos.
+httpx==0.28.1
+
+# Lectura y procesamiento de archivos astronómicos FITS.
+astropy>=7.2.0
+
+
+# Framework para ejecutar las pruebas automatizadas.
+pytest==9.1.1
+
+# Dependencia que ya estaba en tu archivo original.
+httpx2==2.13.0
+
+# Operaciones numéricas sobre matrices de píxeles.
+numpy>=2.1.0
+
+# Generación de imágenes PNG.
+Pillow>=11.0.0
+
+# Generación de figuras científicas.
+matplotlib>=3.10

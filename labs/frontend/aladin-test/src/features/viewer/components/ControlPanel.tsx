@@ -116,7 +116,7 @@ export default function ControlPanel({
           <FileUploadOutlined sx={{ fontSize: 18 }} />
           Subir imagen
         </AnimatedButton>
-        
+
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFile} />
 
         <Button
