@@ -18,7 +18,6 @@ type Props = {
   onPickRegion: (ra: number, dec: number, fovDeg: number) => void;
   onSearch: (ra: number, dec: number) => void;
   onReset: () => void;
-  onInfo: () => void;
   disabled?: boolean;
 };
 
@@ -84,9 +83,9 @@ const REGIONS = [
 
 /**
  * Herramientas de arriba a la derecha: selector de candidatos o regiones,
- * Coordenadas, Reiniciar visor e Información.
+ * Coordenadas y Reiniciar visor. La información del visor está en el menú de las tres rayitas.
  */
-export default function TopRightTools({ objects, value, onPickCandidate, onPickRegion, onSearch, onReset, onInfo, disabled }: Props) {
+export default function TopRightTools({ objects, value, onPickCandidate, onPickRegion, onSearch, onReset, disabled }: Props) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [ra, setRa] = useState("");
   const [dec, setDec] = useState("");
@@ -176,9 +175,6 @@ export default function TopRightTools({ objects, value, onPickCandidate, onPickR
         sx={buttonSx}
       >
         Reiniciar visor
-      </Button>
-      <Button onClick={onInfo} sx={buttonSx}>
-        Información
       </Button>
 
       {panelOpen && (
