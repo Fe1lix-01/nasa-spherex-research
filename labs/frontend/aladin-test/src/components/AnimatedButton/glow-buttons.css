@@ -1,4 +1,16 @@
-﻿/* Borde de 1 px con destello giratorio para los botones de MUI (lo mueve GlowClock). */
+﻿/* Borde de 1 px con destello giratorio para los botones de MUI. Solo CSS: no usa JavaScript. */
+@property --glow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes glow-spin {
+  to {
+    --glow-angle: 360deg;
+  }
+}
+
 .MuiButton-root,
 .MuiIconButton-root,
 .MuiToggleButton-root {
@@ -18,7 +30,7 @@
   border-radius: inherit;
   padding: 1px;
   background: conic-gradient(
-    from var(--glow-angle, 0deg),
+    from var(--glow-angle),
     var(--glow-line) 0deg,
     var(--glow-base) 60deg,
     var(--glow-base) 300deg,
@@ -27,10 +39,19 @@
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   pointer-events: none;
+  animation: glow-spin 6s linear infinite; /* una vuelta cada 6 segundos */
 }
 
 .MuiButton-root.Mui-disabled::before,
 .MuiIconButton-root.Mui-disabled::before,
 .MuiToggleButton-root.Mui-disabled::before {
   opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .MuiButton-root::before,
+  .MuiIconButton-root::before,
+  .MuiToggleButton-root::before {
+    animation: none;
+  }
 }
